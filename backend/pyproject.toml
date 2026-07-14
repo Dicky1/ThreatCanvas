@@ -1,0 +1,9 @@
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+extend-select = ["I", "B", "C4", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+asyncio_mode = "auto"
