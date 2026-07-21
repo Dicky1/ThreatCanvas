@@ -35,18 +35,47 @@ export default function ThreatGraph({ data, scenarioId }: { data: any; scenarioI
 
   if (!data?.nodes) return <div className="p-4 text-gray-500">Generating graph workspace...</div>;
 
-  const getNodeStyle = (id: string) => {
+  // LOGIKA WARNA DENGAN DETEKSI HIGH-RISK DINAMIS
+  const getNodeStyle = (id: string, actionType: string = '') => {
     if (!analysis) return { background: '#171717', color: '#3b82f6', border: '1px solid #3b82f6' };
-    if (analysis.critical_path?.includes(id)) return { background: '#EAB308', color: '#000', border: '2px solid #CA8A04' };
-    if (analysis.detection_choke_points?.includes(id)) return { background: '#9333EA', color: '#fff', border: '2px solid #7E22CE' };
-    if (analysis.high_risk_nodes?.some((n: any) => n.node_id === id)) return { background: '#EA580C', color: '#fff', border: '2px solid #C2410C' };
-    if (analysis.entry_points?.includes(id)) return { background: '#16A34A', color: '#fff', border: '2px solid #15803D' };
-    if (analysis.exit_points?.includes(id)) return { background: '#DC2626', color: '#fff', border: '2px solid #B91C1C' };
+    
+    // 1. Prioritas Utama: Entry Point (Hijau)
+    if (analysis.entry_points?.includes(id)) {
+      return { background: '#16A34A', color: '#fff', border: '2px solid #15803D' };
+    }
+    
+    // 2. Prioritas Kedua: Exit Point (Merah)
+    if (analysis.exit_points?.includes(id)) {
+      return { background: '#DC2626', color: '#fff', border: '2px solid #B91C1C' };
+    }
+    
+    // 3. Prioritas Ketiga: High Risk Node (Orange - Otomatis mendeteksi backend & keyword aksi berbahaya)
+    const isHighRiskBackend = analysis.high_risk_nodes?.some((n: any) => n.node_id === id);
+    const actionLower = actionType.toLowerCase();
+    const isHighRiskKeyword = actionLower.includes('credential') || actionLower.includes('dump') || actionLower.includes('ransomware') || actionLower.includes('privilege');
+    
+    if (isHighRiskBackend || isHighRiskKeyword) {
+      return { background: '#EA580C', color: '#fff', border: '2px solid #C2410C' };
+    }
+    
+    // 4. Prioritas Keempat: Detection Choke Point (Ungu)
+    if (analysis.detection_choke_points?.includes(id)) {
+      return { background: '#9333EA', color: '#fff', border: '2px solid #7E22CE' };
+    }
+    
+    // 5. Terakhir: Critical Path (Kuning)
+    if (analysis.critical_path?.includes(id)) {
+      return { background: '#EAB308', color: '#000', border: '2px solid #CA8A04' };
+    }
+
     return { background: '#171717', color: '#3b82f6', border: '1px solid #3b82f6' };
   };
 
   const nodes = data.nodes.map((n: any, i: number) => ({
-    id: n.step_id, data: { label: n.action_type }, position: { x: i * 200, y: 100 }, style: getNodeStyle(n.step_id),
+    id: n.step_id, 
+    data: { label: n.action_type }, 
+    position: { x: i * 200, y: 100 }, 
+    style: getNodeStyle(n.step_id, n.action_type),
   }));
 
   const edges = (data.edges || []).map((e: any) => ({ id: `e${e.from}-${e.to}`, source: e.from, target: e.to, animated: true }));

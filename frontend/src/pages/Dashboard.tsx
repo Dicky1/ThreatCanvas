@@ -1,18 +1,10 @@
 import { useState, useEffect } from "react";
 import { useThreatStore } from "../store/useThreatStore";
-import { 
-  Send, 
-  Loader2, 
-  ShieldAlert, 
-  CheckCircle2, 
-  XCircle, 
-  ShieldCheck,
-  Activity // Tambahan icon untuk tab Assessment
-} from "lucide-react";
+import { Send, Loader2, ShieldAlert, CheckCircle2, XCircle, ShieldCheck,Activity } from "lucide-react";
 import ThreatGraph from "../components/ThreatGraph";
 import ArtifactViewer from "../components/ArtifactViewer";
 import Coverage from "../components/Coverage";
-import ThreatAssessment from "../components/ThreatAssessment"; // Import Komponen Baru Phase 6
+import ThreatAssessment from "../components/ThreatAssessment"; 
 import { useLocation } from "react-router-dom";
 
 export default function Dashboard() {

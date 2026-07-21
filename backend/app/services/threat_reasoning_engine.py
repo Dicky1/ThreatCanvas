@@ -39,7 +39,7 @@ class ThreatReasoningEngine:
             "TA0040": "Impact",
         }
 
-        # 1. Dictionary Nama Teknik (Ditambahkan T1204.002)
+        # 1. Dictionary Nama Teknik
         self.TECHNIQUE_MAP = {
             "T1566.001": "Spearphishing Attachment",
             "T1003.001": "LSASS Memory / Credential Dumping",
@@ -51,9 +51,15 @@ class ThreatReasoningEngine:
             "T1204": "Malicious File",
             "T1071.001": "Web Protocols (C2)",
             "T1204.002": "Malicious File",
+            "T1078": "Valid Accounts",
+            "T1078.002": "Valid Accounts: Domain Accounts",
+            "T1078.003": "Valid Accounts: Local Accounts",
+            # --- TAMBAHAN BARU UNTUK COLLECTION & EXFILTRATION ---
+            "T1113": "Screen Capture",
+            "T1560.001": "Archive Collected Data: Archive via Utility",
         }
 
-        # 2. Pemisahan Controls (Ditambahkan T1204.002)
+        # 2. Pemisahan Controls
         self.MITRE_CONTROLS = {
             "T1566.001": [
                 "Email Gateway Filtering",
@@ -84,9 +90,35 @@ class ThreatReasoningEngine:
                 "Block Internet Macros",
                 "Application Control (WDAC/AppLocker)",
             ],
+            "T1078": [
+                "Implement Multi-Factor Authentication (MFA)",
+                "Regularly audit active and dormant accounts",
+                "Enforce Principle of Least Privilege",
+            ],
+            "T1078.002": [
+                "Implement MFA for Domain Accounts",
+                "Monitor Domain Admin group changes",
+            ],
+            "T1078.003": [
+                "Use LAPS for local admin passwords",
+                "Disable local admin accounts over network",
+            ],
+            # --- TAMBAHAN BARU UNTUK COLLECTION & EXFILTRATION ---
+            "T1113": [
+                "Restrict local admin privileges",
+                "Deploy EDR to monitor API calls related to screen capture",
+            ],
+            "T1560.001": [
+                "Data Loss Prevention (DLP) solutions",
+                "Restrict unauthorized access to archiving utilities (e.g., 7z, WinRAR)",
+            ],
+            "T1071.001": [
+                "Web Proxy/Secure Web Gateway (SWG)",
+                "TLS/SSL Decryption & Inspection",
+            ],
         }
 
-        # 3. Pemisahan Actions (Ditambahkan T1204.002)
+        # 3. Pemisahan Actions
         self.MITRE_ACTIONS = {
             "T1566.001": [
                 "Deploy YARA/Sigma rule for phishing attachment detection",
@@ -123,6 +155,28 @@ class ThreatReasoningEngine:
                 "Alert on Office spawning PowerShell",
                 "Detect Office launching cmd.exe",
                 "Enable Office macro logging",
+            ],
+            "T1078": [
+                "Monitor anomalous logon patterns (Event ID 4624)",
+                "Alert on unusual logon times/locations",
+            ],
+            "T1078.002": [
+                "Alert on unusual Domain Admin logon activity",
+                "Audit usage of default domain administrator",
+            ],
+            "T1078.003": ["Monitor local admin network logons (Logon Type 3)"],
+            # --- TAMBAHAN BARU UNTUK COLLECTION & EXFILTRATION ---
+            "T1113": [
+                "Monitor unusual processes accessing GUI APIs",
+                "Detect generation of unexpected image files",
+            ],
+            "T1560.001": [
+                "Alert on rare or automated execution of 7z.exe, winrar.exe, or tar",
+                "Monitor creation of suspicious encrypted archives",
+            ],
+            "T1071.001": [
+                "Analyze abnormal HTTP/S traffic and high-volume data transfers",
+                "Block connections to known malicious domains/IPs",
             ],
         }
 
@@ -207,8 +261,13 @@ class ThreatReasoningEngine:
             "data encrypted for impact" in tech_ids or "t1486" in tech_ids
         ):
             attack_objective = "Ransomware"
+        elif (
+            "credential access" in tactic_names
+            and "privilege escalation" in tactic_names
+        ):
+            attack_objective = "Privilege Escalation & Credential Theft"
         elif "credential access" in tactic_names and "lateral movement" in tactic_names:
-            attack_objective = "Credential Theft"
+            attack_objective = "Credential Theft & Lateral Movement"
         elif "exfiltration" in tactic_names:
             attack_objective = "Data Theft"
         elif "discovery" in tactic_names and "persistence" in tactic_names:
@@ -218,6 +277,13 @@ class ThreatReasoningEngine:
                 attack_objective = "Phishing-based Malware Delivery"
             else:
                 attack_objective = "Initial Compromise"
+        elif "lateral movement" in tactic_names:
+            if "t1021.002" in tech_ids:
+                attack_objective = "Lateral Movement via Admin Shares"
+            else:
+                attack_objective = "Network Propagation / Lateral Movement"
+        elif "execution" in tactic_names:
+            attack_objective = "Remote Code Execution"
 
         # Kill Chain Completion
         total_killchain_stages = 14
