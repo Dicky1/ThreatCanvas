@@ -2,14 +2,14 @@ from sqlalchemy.orm import Session
 from app.models.scenario import ScenarioRecord as Scenario
 from app.schemas.cir import CIRSpecification
 
+
 class ScenarioRepository:
     def __init__(self, db: Session):
         self.db = db
 
     def save_scenario(self, original_input: str, cir_graph_data: dict) -> Scenario:
         db_scenario = Scenario(
-            original_input=original_input,
-            cir_graph_data=cir_graph_data
+            original_input=original_input, cir_graph_data=cir_graph_data
         )
         self.db.add(db_scenario)
         self.db.commit()

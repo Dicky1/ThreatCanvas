@@ -1,5 +1,6 @@
 from app.schemas.cir import CIRSpecification
 
+
 class KQLCompiler:
     def __init__(self, cir_data: CIRSpecification):
         self.cir_data = cir_data
@@ -11,5 +12,7 @@ class KQLCompiler:
             # Contoh pemetaan logika ke tabel DeviceProcessEvents
             query = f"DeviceProcessEvents | where FileName endswith '{node.action_type}' or ProcessCommandLine contains '{node.target}' | extend Tactic='{node.tactic}', Technique='{node.technique}'"
             queries.append(query)
-            
-        return "// KQL Deteksi Otomatis untuk ThreatCanvas\n" + "\n| union\n".join(queries)
+
+        return "// KQL Deteksi Otomatis untuk ThreatCanvas\n" + "\n| union\n".join(
+            queries
+        )

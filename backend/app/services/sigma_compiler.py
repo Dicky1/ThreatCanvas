@@ -3,11 +3,12 @@ import uuid
 from datetime import datetime
 from app.schemas.cir import CIRSpecification, CIRNode
 
+
 class SigmaCompiler:
     """
     Kompilator deterministik untuk mengubah CIR Graph menjadi Sigma Rules.
     """
-    
+
     def __init__(self, cir_data: CIRSpecification):
         self.cir_data = cir_data
 
@@ -21,16 +22,11 @@ class SigmaCompiler:
             "date": datetime.now().strftime("%Y/%m/%d"),
             "tags": [
                 f"attack.{node.tactic.lower()}",
-                f"attack.{node.technique.lower().replace('.', '_')}"
+                f"attack.{node.technique.lower().replace('.', '_')}",
             ],
-            "logsource": {
-                "category": "process_creation",
-                "product": "windows"
-            },
-            "detection": {
-                "condition": "selection"
-            },
-            "level": "high"
+            "logsource": {"category": "process_creation", "product": "windows"},
+            "detection": {"condition": "selection"},
+            "level": "high",
         }
 
         # Mapping evidence ke kondisi Sigma
@@ -45,7 +41,7 @@ class SigmaCompiler:
                 rule["logsource"]["category"] = "network_connection"
                 if evidence.protocol:
                     selection["Protocol"] = evidence.protocol
-                    
+
         if not selection:
             selection["TargetObject"] = node.target
 
@@ -54,8 +50,10 @@ class SigmaCompiler:
 
     def compile(self) -> str:
         """Mengompilasi seluruh node di CIR Graph menjadi dokumen YAML (Sigma)."""
-        rules = [self._generate_rule_for_node(node, self.cir_data.scenario_id) 
-                 for node in self.cir_data.attack_graph.nodes]
-        
+        rules = [
+            self._generate_rule_for_node(node, self.cir_data.scenario_id)
+            for node in self.cir_data.attack_graph.nodes
+        ]
+
         yaml_docs = [yaml.dump(r, sort_keys=False, allow_unicode=True) for r in rules]
         return "\n---\n".join(yaml_docs)
