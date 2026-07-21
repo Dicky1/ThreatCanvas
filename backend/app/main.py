@@ -1,13 +1,12 @@
-from fastapi import FastAPI  # type: ignore[reportMissingImports]
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.endpoints import parser, compilers, coverage
 from app.core.database import engine, Base
 from app.api.endpoints import graph_analysis
+from app.api.endpoints import reasoning
+from app.api.endpoints import auth  # 
+from app.models import user 
 
-# 1. TAMBAHKAN IMPORT REASONING DI SINI
-from app.api.endpoints import reasoning 
-
-# Create Database Tables
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="ThreatCanvas AI API", version="1.0.0")
@@ -25,6 +24,7 @@ app.include_router(compilers.router, prefix="/api/v1", tags=["Compilers"])
 app.include_router(coverage.router, prefix="/api/v1", tags=["Coverage"])
 app.include_router(graph_analysis.router, prefix="/api/v1", tags=["Analysis"])
 app.include_router(reasoning.router, prefix="/api/v1", tags=["Reasoning"])
+app.include_router(auth.router, prefix="/api/v1", tags=["Auth"])  # <-- TAMBAHAN
 
 @app.get("/health")
 async def health_check():
