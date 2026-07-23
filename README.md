@@ -125,7 +125,7 @@ ThreatCanvas introduces several engineering contributions at the intersection of
 
 ---
 
-## 🛡️ Phase 7 — Attack Simulation & Defense Optimization
+## Attack Simulation & Defense Optimization
 
 ThreatCanvas introduces a deterministic attack simulation engine that evaluates defensive strategies by virtually blocking one or more MITRE ATT&CK techniques from the generated attack graph.
 
