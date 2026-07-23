@@ -8,12 +8,12 @@ pydantic-settings==2.10.1
 celery==5.5.3
 redis==6.2.0
 openai==1.98.0
-pytest==8.4.1
+pytest==9.0.3
 pytest-asyncio==1.1.0
 httpx==0.28.1
 ruff==0.12.4
 passlib[bcrypt]==1.7.4
-python-jose[cryptography]==3.3.0
-python-multipart==0.0.9
+python-jose[cryptography]==3.4.0
+python-multipart==0.0.31
 email-validator==2.2.0
 bcrypt==4.0.1
