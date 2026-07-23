@@ -50,7 +50,7 @@ export default function Login() {
               required
               autoFocus
               className="w-full bg-gray-800/60 border border-gray-700 rounded px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-primary transition-colors"
-              placeholder="dicky"
+              placeholder="••••••••"
             />
           </div>
 

@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useThreatStore } from "../store/useThreatStore";
-import { Send, Loader2, ShieldAlert, CheckCircle2, XCircle, ShieldCheck,Activity } from "lucide-react";
+import { Send, Loader2, ShieldAlert, CheckCircle2, XCircle, ShieldCheck, Activity, Sliders } from "lucide-react";
 import ThreatGraph from "../components/ThreatGraph";
 import ArtifactViewer from "../components/ArtifactViewer";
 import Coverage from "../components/Coverage";
 import ThreatAssessment from "../components/ThreatAssessment"; 
+import AttackSimulationView from "../components/AttackSimulationView"; // <-- Impor komponen simulasi
 import { useLocation } from "react-router-dom";
 
 export default function Dashboard() {
@@ -21,9 +22,9 @@ export default function Dashboard() {
     validation,
   } = useThreatStore();
 
-  // Tambahkan "assessment" ke dalam tipe union activeTab
+  // Tambahkan "simulation" ke dalam tipe union activeTab
   const [activeTab, setActiveTab] = useState<
-    "graph" | "artifacts" | "validation" | "coverage" | "assessment"
+    "graph" | "artifacts" | "validation" | "coverage" | "assessment" | "simulation"
   >("graph");
 
   const [selectedArtifact, setSelectedArtifact] = useState<
@@ -35,16 +36,13 @@ export default function Dashboard() {
   useEffect(() => {
     if (location.state && location.state.loadedScenario) {
       const scenario = location.state.loadedScenario;
-
       setScenarioInput(scenario.original_input);
-
       window.history.replaceState({}, document.title);
     }
   }, [location, setScenarioInput]);
 
-  // Update tipe argumen handleTabChange
   const handleTabChange = (
-    tab: "graph" | "artifacts" | "validation" | "coverage" | "assessment"
+    tab: "graph" | "artifacts" | "validation" | "coverage" | "assessment" | "simulation"
   ) => {
     setActiveTab(tab);
 
@@ -59,15 +57,12 @@ export default function Dashboard() {
         <h2 className="text-2xl font-bold text-white mb-2">
           Threat Narrative Processor
         </h2>
-
         <p className="text-gray-400">
-          Transform natural language attack scenarios into deterministic CIR
-          graphs.
+          Transform natural language attack scenarios into deterministic CIR graphs.
         </p>
       </header>
 
       {/* ================= INPUT ================= */}
-
       <div className="bg-surface border border-gray-800 rounded-xl p-6 shadow-xl">
         <textarea
           rows={6}
@@ -87,7 +82,6 @@ export default function Dashboard() {
           ) : (
             <Send className="mr-2" />
           )}
-
           Generate Artifacts
         </button>
 
@@ -100,14 +94,11 @@ export default function Dashboard() {
       </div>
 
       {/* ================= RESULT ================= */}
-
       {(cirData || validation) && (
         <div className="bg-surface border border-gray-800 rounded-xl p-6 shadow-xl">
 
           {/* TAB NAVIGATION */}
-
           <div className="flex gap-6 border-b border-gray-700 mb-6 overflow-x-auto">
-
             <button
               onClick={() => handleTabChange("graph")}
               className={`pb-2 whitespace-nowrap ${
@@ -139,18 +130,11 @@ export default function Dashboard() {
               }`}
             >
               Validation
-
               {validation &&
                 (validation.valid ? (
-                  <CheckCircle2
-                    size={16}
-                    className="text-green-500"
-                  />
+                  <CheckCircle2 size={16} className="text-green-500" />
                 ) : (
-                  <XCircle
-                    size={16}
-                    className="text-red-500"
-                  />
+                  <XCircle size={16} className="text-red-500" />
                 ))}
             </button>
 
@@ -166,7 +150,6 @@ export default function Dashboard() {
               Coverage
             </button>
 
-            {/* TAB BARU: THREAT ASSESSMENT */}
             <button
               onClick={() => handleTabChange("assessment")}
               className={`pb-2 flex items-center gap-2 whitespace-nowrap ${
@@ -178,7 +161,19 @@ export default function Dashboard() {
               <Activity size={16} />
               Threat Assessment
             </button>
-            
+
+            {/* TAB BARU: ATTACK SIMULATION */}
+            <button
+              onClick={() => handleTabChange("simulation")}
+              className={`pb-2 flex items-center gap-2 whitespace-nowrap ${
+                activeTab === "simulation"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-gray-400"
+              }`}
+            >
+              <Sliders size={16} />
+              Simulation
+            </button>
           </div>
 
           {/* ================= GRAPH ================= */}
@@ -198,18 +193,14 @@ export default function Dashboard() {
           )}
 
           {/* ================= ARTIFACT ================= */}
-
           {activeTab === "artifacts" && cirData && (
             <div className="space-y-4">
-
               <div className="flex gap-2">
-
                 {(["sigma", "kql", "spl"] as const).map((type) => (
                   <button
                     key={type}
                     onClick={() => {
                       setSelectedArtifact(type);
-
                       if (scenarioId) {
                         fetchArtifacts(scenarioId, type);
                       }
@@ -233,7 +224,6 @@ export default function Dashboard() {
           )}
 
           {/* ================= VALIDATION ================= */}
-
           {activeTab === "validation" && validation && (
             <div
               className={`rounded-lg p-6 ${
@@ -243,11 +233,9 @@ export default function Dashboard() {
               }`}
             >
               <div className="flex items-center gap-3 mb-5">
-
                 {validation.valid ? (
                   <>
                     <CheckCircle2 className="text-green-400" />
-
                     <h3 className="text-green-400 font-bold text-lg">
                       CIR STRUCTURE VALID
                     </h3>
@@ -255,7 +243,6 @@ export default function Dashboard() {
                 ) : (
                   <>
                     <XCircle className="text-red-400" />
-
                     <h3 className="text-red-400 font-bold text-lg">
                       CIR VALIDATION FAILED
                     </h3>
@@ -263,51 +250,46 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {validation.errors &&
-                validation.errors.length > 0 && (
-                  <>
-                    <h4 className="text-red-300 font-semibold mb-2">
-                      Detected Issues
-                    </h4>
+              {validation.errors && validation.errors.length > 0 && (
+                <>
+                  <h4 className="text-red-300 font-semibold mb-2">Detected Issues</h4>
+                  <ul className="list-disc ml-6 space-y-2">
+                    {validation.errors.map((err, index) => (
+                      <li key={index}>{err}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
 
-                    <ul className="list-disc ml-6 space-y-2">
-
-                      {validation.errors.map((err, index) => (
-                        <li key={index}>{err}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
-
-              {validation.warnings &&
-                validation.warnings.length > 0 && (
-                  <>
-                    <h4 className="text-yellow-300 font-semibold mt-5 mb-2">
-                      Warnings
-                    </h4>
-
-                    <ul className="list-disc ml-6 space-y-2">
-
-                      {validation.warnings.map((warn, index) => (
-                        <li key={index}>{warn}</li>
-                      ))}
-                    </ul>
-                  </>
-                )}
+              {validation.warnings && validation.warnings.length > 0 && (
+                <>
+                  <h4 className="text-yellow-300 font-semibold mt-5 mb-2">Warnings</h4>
+                  <ul className="list-disc ml-6 space-y-2">
+                    {validation.warnings.map((warn, index) => (
+                      <li key={index}>{warn}</li>
+                    ))}
+                  </ul>
+                </>
+              )}
             </div>
           )}
 
           {/* ================= COVERAGE ================= */}
-
           {activeTab === "coverage" && scenarioId && (
             <Coverage scenarioId={scenarioId} />
           )}
 
-          {/* ================= ASSESSMENT (PHASE 6) ================= */}
-
+          {/* ================= THREAT ASSESSMENT ================= */}
           {activeTab === "assessment" && scenarioId && (
             <div className="h-full">
               <ThreatAssessment scenarioId={scenarioId} />
+            </div>
+          )}
+
+          {/* ================= ATTACK SIMULATION (TAB BARU) ================= */}
+          {activeTab === "simulation" && scenarioId && (
+            <div className="h-full">
+              <AttackSimulationView scenarioId={scenarioId} />
             </div>
           )}
 

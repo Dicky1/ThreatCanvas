@@ -4,7 +4,8 @@ from app.api.endpoints import parser, compilers, coverage
 from app.core.database import engine, Base
 from app.api.endpoints import graph_analysis
 from app.api.endpoints import reasoning
-from app.api.endpoints import auth  # 
+from app.api.endpoints import auth
+from app.api.endpoints import simulation  # <-- TAMBAHAN PHASE 7
 from app.models import user 
 
 Base.metadata.create_all(bind=engine)
@@ -24,7 +25,8 @@ app.include_router(compilers.router, prefix="/api/v1", tags=["Compilers"])
 app.include_router(coverage.router, prefix="/api/v1", tags=["Coverage"])
 app.include_router(graph_analysis.router, prefix="/api/v1", tags=["Analysis"])
 app.include_router(reasoning.router, prefix="/api/v1", tags=["Reasoning"])
-app.include_router(auth.router, prefix="/api/v1", tags=["Auth"])  # <-- TAMBAHAN
+app.include_router(auth.router, prefix="/api/v1", tags=["Auth"])
+app.include_router(simulation.router, prefix="/api/v1", tags=["Simulation"])  # <-- TAMBAHAN PHASE 7
 
 @app.get("/health")
 async def health_check():
