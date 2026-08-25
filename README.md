@@ -7,7 +7,7 @@ The project is built around a clear separation of concerns:
 - **Threat Modeling / Attack Graph** models the ordered attack path for the active scenario.
 - **Knowledge Graph** explores CIR entities, provenance, evidence, and typed relationships.
 - **Threat Intelligence** imports STIX and normalizes TAXII/MISP/OpenCTI-style payloads.
-- **Collective Defense** correlates sanitized packages into shared techniques, paths, and a collective threat graph.
+- **Collective Defense** correlates sanitized packages into shared techniques, paths, coverage gaps, and a collective threat graph.
 - **Simulation** measures how blocked techniques disrupt attack paths using APDS, RW-APDS, D3FEND-aligned recommendations, and optional budget optimization.
 
 ## Current Capabilities
@@ -28,8 +28,8 @@ The project is built around a clear separation of concerns:
 - STIX 2.1 import/export.
 - CTI connector normalization for STIX/TAXII/MISP/OpenCTI-style JSON payloads.
 - Multi-model CIR consensus analysis for agreed/disputed ATT&CK techniques.
-- Collective defense correlation and collective threat graph visualization.
-- Research telemetry for parse runs.
+- Collective defense correlation with local-vs-collective detection union coverage.
+- Research telemetry for parse runs plus benchmark summary visualization.
 - Benchmark fixtures, sample CIR outputs, and a deterministic benchmark evaluator.
 - JWT authentication, scenario history, prompt library UI, and client-side notifications.
 
@@ -199,6 +199,7 @@ Most endpoints are under `/api/v1`. STIX endpoints currently use `/api/stix`. Us
 | `POST` | `/api/v1/validate/{type}/{scenario_id}` | Validate generated detection artifacts |
 | `POST` | `/api/v1/{scenario_id}` | Run APDS/RW-APDS simulation and defense optimization |
 | `GET` | `/api/v1/research/metrics/{scenario_id}` | Read research telemetry |
+| `GET` | `/api/v1/benchmark/report/summary` | Read bundled benchmark report summary |
 | `GET` | `/api/v1/benchmark/{scenario_id}` | Read active-scenario benchmark summary |
 | `POST` | `/api/v1/collective/analyze` | Analyze sanitized collective-defense packages |
 | `POST` | `/api/v1/cti/fetch` | Normalize STIX/TAXII/MISP/OpenCTI-style JSON payloads |

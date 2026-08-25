@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -5,6 +8,15 @@ from app.repositories.scenario_repo import ScenarioRepository
 from app.services.coverage_analyzer import CoverageAnalyzer
 
 router = APIRouter(prefix="/benchmark", tags=["Benchmark"])
+
+
+@router.get("/report/summary")
+def benchmark_report():
+    report_path = Path(__file__).resolve().parents[4] / "benchmark" / "results" / "report.json"
+    if not report_path.exists():
+        raise HTTPException(status_code=404, detail="Benchmark report not found")
+    return json.loads(report_path.read_text(encoding="utf-8"))
+
 
 @router.get("/{scenario_id}")
 def benchmark_scenario(scenario_id: str, db: Session = Depends(get_db)):

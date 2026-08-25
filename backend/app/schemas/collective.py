@@ -17,6 +17,7 @@ class ThreatIntelligencePackage(BaseModel):
     tlp: TLPClassification
     source_confidence: float = Field(..., ge=0, le=1)
     observed_techniques: list[str] = Field(default_factory=list)
+    detected_techniques: list[str] = Field(default_factory=list)
     sanitized_indicators: list[dict[str, Any]] = Field(default_factory=list)
     observed_at: datetime | None = None
     provenance: str | None = None
@@ -37,10 +38,13 @@ class SharedAttackPath(BaseModel):
 
 
 class CoverageSummary(BaseModel):
+    observed_techniques: list[str]
     local_techniques: list[str]
+    collective_detected_techniques: list[str]
     collective_techniques: list[str]
     local_coverage: float
     collective_coverage: float
+    detection_gap_techniques: list[str]
 
 
 class CollectiveGraphNode(BaseModel):

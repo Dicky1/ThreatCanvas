@@ -435,8 +435,8 @@ export default function AttackSimulationView({ scenarioId }: AttackSimulationVie
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Recommended Defense Controls</h3>
               {simulationData.budget_optimization && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                  <MetricCard title="Budget Used" before={securityBudget || 0} after={simulationData.budget_optimization.total_cost} />
-                  <MetricCard title="Expected Reduction" before={0} after={simulationData.budget_optimization.expected_risk_reduction} />
+                  <MetricCard title="Illustrative Budget Used" before={securityBudget || 0} after={simulationData.budget_optimization.total_cost} />
+                  <MetricCard title="Illustrative Risk Reduction" before={0} after={simulationData.budget_optimization.expected_risk_reduction} />
                   <MetricCard title="RW-APDS Lift" before={0} after={`${simulationData.budget_optimization.rw_apds_improvement}%`} />
                   <MetricCard title="Optimizer" before="-" after={simulationData.budget_optimization.algorithm} isText />
                 </div>
@@ -446,7 +446,7 @@ export default function AttackSimulationView({ scenarioId }: AttackSimulationVie
                   {simulationData.budget_optimization.recommended_controls.map((ctrl) => (
                     <div key={ctrl.control_id} className="bg-slate-950 border border-slate-800 p-3 rounded-lg flex items-center justify-between text-xs">
                       <span className="font-medium text-cyan-300">{ctrl.control_name}</span>
-                      <span className="font-mono text-slate-400">${ctrl.implementation_cost.toLocaleString()} | reduction {ctrl.expected_risk_reduction}</span>
+                      <span className="font-mono text-slate-400">illustrative ${ctrl.implementation_cost.toLocaleString()} | reduction {ctrl.expected_risk_reduction}</span>
                     </div>
                   ))}
                 </div>
@@ -461,7 +461,7 @@ export default function AttackSimulationView({ scenarioId }: AttackSimulationVie
                       </span>
                         <div className="text-right text-[10px] text-slate-500">
                           {ctrl.defensive_technique && <div>{ctrl.defensive_technique}</div>}
-                          {ctrl.risk_reduction_percentage && <div>Risk reduction {ctrl.risk_reduction_percentage}</div>}
+                          {ctrl.risk_reduction_percentage && <div>Illustrative reduction {ctrl.risk_reduction_percentage}</div>}
                           {ctrl.confidence !== undefined && <div>Confidence {Math.round(ctrl.confidence * 100)}%</div>}
                           {ctrl.affected_attack_nodes && <div>{ctrl.affected_attack_nodes.length} affected node(s)</div>}
                         </div>

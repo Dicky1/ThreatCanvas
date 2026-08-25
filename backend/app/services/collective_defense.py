@@ -29,9 +29,13 @@ class CollectiveDefenseEngine:
         observations: dict[str, dict[str, Any]] = {}
         indicators: dict[str, dict[str, Any]] = {}
         paths: dict[tuple[str, ...], dict[str, Any]] = {}
+        collective_detected_ids: set[str] = set()
 
         for package in packages:
             techniques = [technique.upper() for technique in package.observed_techniques]
+            collective_detected_ids.update(
+                technique.upper() for technique in package.detected_techniques
+            )
             for technique_id in techniques:
                 observation = observations.setdefault(
                     technique_id,
@@ -77,6 +81,11 @@ class CollectiveDefenseEngine:
         ]
         shared_ids = {item.technique_id for item in shared}
         local_ids = {technique.upper() for technique in local_detected_techniques or []}
+        observed_ids = shared_ids
+        if not collective_detected_ids:
+            # Backward-compatible behavior for legacy payloads. Newer packages should
+            # send detected_techniques so coverage represents detection union.
+            collective_detected_ids = shared_ids
         denominator = len(shared_ids)
         collective_graph = self._build_collective_graph(shared, paths)
         controls = {
@@ -97,12 +106,19 @@ class CollectiveDefenseEngine:
             ],
             collective_graph=collective_graph,
             coverage=CoverageSummary(
+                observed_techniques=sorted(observed_ids),
                 local_techniques=sorted(local_ids),
+                collective_detected_techniques=sorted(collective_detected_ids),
                 collective_techniques=sorted(shared_ids),
                 local_coverage=round(len(local_ids & shared_ids) / denominator * 100, 2)
                 if denominator
                 else 0.0,
-                collective_coverage=100.0 if denominator else 0.0,
+                collective_coverage=round(
+                    len(collective_detected_ids & shared_ids) / denominator * 100, 2
+                )
+                if denominator
+                else 0.0,
+                detection_gap_techniques=sorted(shared_ids - collective_detected_ids),
             ),
             recommended_controls=controls,
         )

@@ -16,6 +16,12 @@ def package(package_id, confidence, techniques, indicator):
     )
 
 
+def package_with_detections(package_id, confidence, observed, detected):
+    item = package(package_id, confidence, observed, {"value": f"{package_id}.example"})
+    item.detected_techniques = detected
+    return item
+
+
 def test_collective_correlation_preserves_highest_confidence_and_provenance():
     result = CollectiveDefenseEngine().analyze(
         [
@@ -37,6 +43,41 @@ def test_collective_correlation_preserves_highest_confidence_and_provenance():
     }
     assert result.collective_graph.edges[0].source == "T1059.001"
     assert result.collective_graph.edges[0].target == "T1486"
+
+
+def test_collective_coverage_uses_detection_union_when_available():
+    result = CollectiveDefenseEngine().analyze(
+        [
+            package_with_detections(
+                "p-a",
+                0.8,
+                ["T1566.001", "T1059.001", "T1003"],
+                ["T1566.001"],
+            ),
+            package_with_detections(
+                "p-b",
+                0.7,
+                ["T1059.001", "T1486"],
+                ["T1059.001", "T1486"],
+            ),
+        ],
+        local_detected_techniques=["T1566.001"],
+    )
+
+    assert result.coverage.observed_techniques == [
+        "T1003",
+        "T1059.001",
+        "T1486",
+        "T1566.001",
+    ]
+    assert result.coverage.local_coverage == 25.0
+    assert result.coverage.collective_coverage == 75.0
+    assert result.coverage.collective_detected_techniques == [
+        "T1059.001",
+        "T1486",
+        "T1566.001",
+    ]
+    assert result.coverage.detection_gap_techniques == ["T1003"]
 
 
 def test_tlp_red_and_duplicate_packages_are_rejected():

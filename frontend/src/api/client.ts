@@ -3,10 +3,12 @@ import type {
   CollectiveDefenseResult,
   CoverageReport,
   AttackTimeline,
+  BenchmarkReport,
   ConsensusResult,
   CTIFetchResult,
   DetectionValidationResult,
   GraphAnalysis,
+  ResearchMetricResult,
   Scenario,
   SimulationResult,
 } from '../types/api';
@@ -129,7 +131,8 @@ export const api = {
     body: JSON.stringify(bundle),
   }),
   exportStix: (id: string) => request<unknown>(`/stix/export/${id}`),
-  researchMetrics: (id: string) => request<{ scenario_id: string; runs: Array<{ operation: string; duration_ms: number; status: string; node_count?: number; edge_count?: number; details: Record<string, unknown>; created_at: string }> }>(`/v1/research/metrics/${id}`),
+  researchMetrics: (id: string) => request<ResearchMetricResult>(`/v1/research/metrics/${id}`),
+  benchmarkReport: () => request<BenchmarkReport>('/v1/benchmark/report/summary'),
   benchmark: (id: string) => request<Record<string, unknown>>(`/v1/benchmark/${id}`),
   deleteScenario: (id: string) => request<unknown>(`/v1/scenarios/${id}`, { method: 'DELETE' }),
 };

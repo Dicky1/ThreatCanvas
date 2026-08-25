@@ -204,10 +204,13 @@ export interface CollectiveDefenseResult {
     }>;
   };
   coverage: {
+    observed_techniques: string[];
     local_techniques: string[];
+    collective_detected_techniques: string[];
     collective_techniques: string[];
     local_coverage: number;
     collective_coverage: number;
+    detection_gap_techniques: string[];
   };
   recommended_controls: Record<string, string[]>;
 }
@@ -244,5 +247,45 @@ export interface AttackTimeline {
     action_type: string;
     target: string;
     status: 'active' | 'blocked' | 'unreachable';
+  }>;
+}
+
+export interface ExperimentRun {
+  operation: string;
+  duration_ms: number;
+  status: string;
+  node_count?: number;
+  edge_count?: number;
+  details: Record<string, unknown>;
+  created_at: string;
+}
+
+export interface ResearchMetricResult {
+  scenario_id: string;
+  runs: ExperimentRun[];
+}
+
+export interface BenchmarkReport {
+  summary: {
+    scenario_count: number;
+    cir_validity_rate: number;
+    attack_precision: number;
+    attack_recall: number;
+    attack_f1: number;
+    tactic_recall: number;
+    graph_ordering_accuracy: number;
+  };
+  scenarios: Array<{
+    scenario_id: string;
+    cir_schema_valid: boolean;
+    attack_precision: number;
+    attack_recall: number;
+    attack_f1: number;
+    tactic_recall: number;
+    graph_ordering_accuracy: number;
+    expected_techniques: string[];
+    predicted_techniques: string[];
+    missing_techniques: string[];
+    extra_techniques: string[];
   }>;
 }
