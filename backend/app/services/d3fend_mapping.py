@@ -25,10 +25,12 @@ class D3FENDMappingService:
         self._mappings: dict[str, list[D3FENDMapping]] = {}
         if mapping_path is None:
             mapping_path = os.getenv("D3FEND_MAPPING_PATH")
-        if mapping_path:
-            with Path(mapping_path).open(encoding="utf-8") as stream:
-                payload = json.load(stream)
-            mappings = payload.get("mappings", payload) if isinstance(payload, dict) else payload
+        if mappings is None:
+            mapping_file = Path(mapping_path) if mapping_path else Path(__file__).parents[1] / "data" / "d3fend_mappings.json"
+            if mapping_file.exists():
+                with mapping_file.open(encoding="utf-8") as stream:
+                    payload = json.load(stream)
+                mappings = payload.get("mappings", payload) if isinstance(payload, dict) else payload
         for mapping in mappings or []:
             self._add(mapping)
 

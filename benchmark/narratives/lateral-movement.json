@@ -1,0 +1,6 @@
+{
+  "id": "lateral-movement-admin-shares",
+  "title": "Windows admin share lateral movement",
+  "narrative": "A threat actor uses valid accounts to access Windows admin shares, executes a remote service on a server, and stages tooling for persistence.",
+  "tags": ["lateral-movement", "windows"]
+}

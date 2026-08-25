@@ -1,0 +1,6 @@
+{
+  "id": "ransomware-email-to-impact",
+  "title": "Email-delivered ransomware",
+  "narrative": "A user receives a spearphishing attachment. The attachment launches PowerShell, establishes persistence, accesses stored credentials, moves laterally over SMB, and encrypts shared files.",
+  "tags": ["ransomware", "email", "impact"]
+}

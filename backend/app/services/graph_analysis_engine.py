@@ -1,7 +1,16 @@
 import json
-from typing import List, Dict, Set
+from typing import List
 from collections import defaultdict, deque
-from app.schemas.graph_analysis import AttackGraphAnalysis, HighRiskNode, BlastRadius
+from app.schemas.graph_analysis import (
+    AssetRiskSignal,
+    AttackGraphAnalysis,
+    BlastRadius,
+    CriticalPathExplanation,
+    HighRiskNode,
+    MissingDetectionDetail,
+    ProbabilisticPath,
+    TrustBoundarySignal,
+)
 
 
 class GraphAnalysisEngine:
@@ -238,11 +247,83 @@ class GraphAnalysisEngine:
                 )
             )
 
-        # 16. Attack Complexity
+        # 16. Asset and trust-boundary risk signals
+        asset_risk_signals = []
+        trust_boundary_signals = []
+        for node in self.nodes:
+            node_id = node.get("step_id") or node.get("id")
+            if not node_id:
+                continue
+            target = str(node.get("target") or "Unknown")
+            target_lower = target.lower()
+            crown_jewel_keyword = any(
+                keyword in target_lower
+                for keyword in (
+                    "domain controller",
+                    "database",
+                    "payment",
+                    "production",
+                    "crown",
+                    "admin",
+                    "backup",
+                    "identity",
+                )
+            )
+            raw_asset_criticality = float(node.get("asset_criticality") or 0.0)
+            crown_jewel_exposure = float(node.get("crown_jewel_exposure") or 0.0)
+            asset_criticality = raw_asset_criticality if crown_jewel_keyword or crown_jewel_exposure > 0 else min(raw_asset_criticality, 0.35)
+            impact = float(node.get("impact") or 1.0)
+            probability = float(node.get("probability") or 1.0)
+            reachability = float(node.get("reachability") or 1.0)
+            risk_score = round(
+                min(
+                    100.0,
+                    (asset_criticality * 35)
+                    + (crown_jewel_exposure * 25)
+                    + (impact * 20)
+                    + (probability * 10)
+                    + (reachability * 10),
+                ),
+                2,
+            )
+            asset_risk_signals.append(
+                AssetRiskSignal(
+                    node_id=node_id,
+                    asset=target,
+                    asset_criticality=round(asset_criticality, 2),
+                    crown_jewel_exposure=round(crown_jewel_exposure, 2),
+                    risk_score=risk_score,
+                )
+            )
+
+            crossing_score = float(node.get("trust_boundary_crossings") or 0.0)
+            severity = "High" if crossing_score >= 0.67 else "Medium" if crossing_score >= 0.34 else "Low"
+            if crossing_score > 0:
+                trust_boundary_signals.append(
+                    TrustBoundarySignal(
+                        node_id=node_id,
+                        crossing_score=round(crossing_score, 2),
+                        severity=severity,
+                    )
+                )
+
+        critical_path_explanation = self._explain_critical_path(
+            critical_path,
+            detection_choke_points,
+            high_risk_nodes,
+            asset_risk_signals,
+            trust_boundary_signals,
+        )
+        missing_detection_details = self._missing_detection_details(
+            critical_path_explanation.missing_detection_nodes
+        )
+        most_likely_path = self._most_likely_path(attack_chains)
+
+        # 17. Attack Complexity
         avg_chain = sum(chain_lengths) / len(chain_lengths) if chain_lengths else 0
         attack_complexity = round(((V + E) * avg_chain) / 10.0, 2)
 
-        # 17. Attack Maturity
+        # 18. Attack Maturity
         if kill_chain_completion >= 80 or attack_complexity > 50:
             attack_maturity = "High"
         elif kill_chain_completion >= 40 or attack_complexity > 20:
@@ -276,6 +357,162 @@ class GraphAnalysisEngine:
             detection_choke_points=detection_choke_points,
             high_risk_nodes=high_risk_nodes,
             blast_radius=blast_radius_list,
+            asset_risk_signals=asset_risk_signals,
+            trust_boundary_signals=trust_boundary_signals,
+            critical_path_explanation=critical_path_explanation,
+            missing_detection_details=missing_detection_details,
+            most_likely_path=most_likely_path,
             attack_complexity=attack_complexity,
             attack_maturity=attack_maturity,
         )
+
+    def _explain_critical_path(
+        self,
+        critical_path: List[str],
+        detection_choke_points: List[str],
+        high_risk_nodes: List[HighRiskNode],
+        asset_risk_signals: List[AssetRiskSignal],
+        trust_boundary_signals: List[TrustBoundarySignal],
+    ) -> CriticalPathExplanation:
+        node_lookup = {
+            node.get("step_id") or node.get("id"): node
+            for node in self.nodes
+            if node.get("step_id") or node.get("id")
+        }
+        high_risk_ids = {node.node_id for node in high_risk_nodes}
+        trust_boundary_ids = {signal.node_id for signal in trust_boundary_signals}
+        crown_jewel_ids = {
+            signal.node_id
+            for signal in asset_risk_signals
+            if signal.crown_jewel_exposure >= 0.5 or signal.risk_score >= 80
+        }
+        missing_detection_nodes = [
+            node_id
+            for node_id in critical_path
+            if not self._has_detection_context(node_lookup.get(node_id, {}))
+        ]
+
+        reasons = []
+        if critical_path:
+            reasons.append(f"Longest reachable chain contains {len(critical_path)} ordered attack step(s).")
+        if high_risk_ids & set(critical_path):
+            reasons.append("Path includes high-risk tactics such as credential access, lateral movement, defense evasion, or impact.")
+        if detection_choke_points:
+            reasons.append("One or more intermediate nodes act as detection choke points across available attack chains.")
+        if missing_detection_nodes:
+            reasons.append(f"{len(missing_detection_nodes)} path node(s) lack explicit detection evidence or ATT&CK data-source context.")
+        if crown_jewel_ids & set(critical_path):
+            reasons.append("Path reaches or approaches a high-criticality or crown-jewel asset.")
+        if trust_boundary_ids & set(critical_path):
+            reasons.append("Path crosses declared trust boundaries, increasing reachability risk.")
+
+        criticality_score = 0.0
+        if self.nodes:
+            criticality_score += len(critical_path) / len(self.nodes) * 35
+        if critical_path:
+            criticality_score += len(high_risk_ids & set(critical_path)) / len(critical_path) * 20
+            criticality_score += len(crown_jewel_ids & set(critical_path)) / len(critical_path) * 20
+            criticality_score += len(trust_boundary_ids & set(critical_path)) / len(critical_path) * 15
+            criticality_score += len(missing_detection_nodes) / len(critical_path) * 10
+
+        return CriticalPathExplanation(
+            path=critical_path,
+            criticality_score=round(min(100.0, criticality_score), 2),
+            reasons=reasons or ["No critical path explanation is available for this graph."],
+            missing_detection_nodes=missing_detection_nodes,
+            crown_jewel_nodes=sorted(crown_jewel_ids & set(critical_path)),
+            trust_boundary_nodes=sorted(trust_boundary_ids & set(critical_path)),
+            high_risk_nodes=sorted(high_risk_ids & set(critical_path)),
+        )
+
+    @staticmethod
+    def _has_detection_context(node: dict) -> bool:
+        if node.get("attack_data_sources"):
+            return True
+        evidence = node.get("evidence") or []
+        for item in evidence:
+            if not isinstance(item, dict):
+                continue
+            if item.get("telemetry_source") or item.get("validation_state") in {"ATTACK_VERIFIED", "HUMAN_VERIFIED"}:
+                return True
+        return False
+
+    def _missing_detection_details(self, node_ids: List[str]) -> List[MissingDetectionDetail]:
+        node_lookup = {
+            node.get("step_id") or node.get("id"): node
+            for node in self.nodes
+            if node.get("step_id") or node.get("id")
+        }
+        details = []
+        for node_id in node_ids:
+            node = node_lookup.get(node_id, {})
+            details.append(
+                MissingDetectionDetail(
+                    node_id=node_id,
+                    technique=str(node.get("technique") or "Unknown"),
+                    action_type=str(node.get("action_type") or "Unknown"),
+                    target=str(node.get("target") or "Unknown"),
+                    reason="No explicit ATT&CK data source, telemetry source, or verified evidence is attached to this step.",
+                )
+            )
+        return details
+
+    def _most_likely_path(self, attack_chains: List[List[str]]) -> ProbabilisticPath | None:
+        if not attack_chains:
+            return None
+        node_lookup = {
+            node.get("step_id") or node.get("id"): node
+            for node in self.nodes
+            if node.get("step_id") or node.get("id")
+        }
+        candidates = []
+        used_fallback = False
+        for chain in attack_chains:
+            probability = 1.0
+            impacts = []
+            for node_id in chain:
+                node = node_lookup.get(node_id, {})
+                if node.get("probability") is not None and float(node["probability"]) < 1.0:
+                    node_probability = float(node["probability"])
+                elif node.get("confidence") is not None:
+                    node_probability = float(node["confidence"])
+                    used_fallback = True
+                else:
+                    node_probability = self._heuristic_probability(node)
+                    used_fallback = True
+                probability *= max(0.0, min(1.0, node_probability))
+                impacts.append(float(node.get("impact") or 1.0))
+            impact_score = sum(impacts) / len(impacts) if impacts else 0.0
+            risk_score = probability * impact_score * 100
+            candidates.append((risk_score, probability, impact_score, chain))
+        risk_score, probability, impact_score, path = max(candidates, key=lambda item: item[0])
+        assumption = (
+            "Uses explicit probability when present; falls back to confidence or tactic-based heuristic estimates."
+            if used_fallback
+            else "Uses explicit node probability values from CIR."
+        )
+        return ProbabilisticPath(
+            path=path,
+            probability=round(probability, 4),
+            impact_score=round(impact_score, 2),
+            risk_score=round(risk_score, 2),
+            assumption=assumption,
+        )
+
+    @staticmethod
+    def _heuristic_probability(node: dict) -> float:
+        tactic = str(node.get("tactic") or "").lower()
+        action = str(node.get("action_type") or "").lower()
+        if "impact" in tactic or "encrypt" in action:
+            return 0.42
+        if "credential" in tactic:
+            return 0.52
+        if "lateral" in tactic or "command and control" in tactic:
+            return 0.58
+        if "defense evasion" in tactic or "persistence" in tactic:
+            return 0.62
+        if "execution" in tactic:
+            return 0.66
+        if "initial" in tactic or "email" in action:
+            return 0.38
+        return 0.5

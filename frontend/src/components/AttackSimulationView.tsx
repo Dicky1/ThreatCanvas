@@ -52,11 +52,13 @@ interface SimulationResult {
   attack_path_disruption_score: number;
   optimized_controls: Array<{
     control_name: string;
+    risk_reduction_percentage?: string;
     defensive_technique?: string;
     rationale?: string;
     confidence?: number;
     affected_attack_nodes?: string[];
     affected_attack_paths?: string[][];
+    source?: string;
   }>;
   simulation_summary: string;
   rw_apds?: {
@@ -67,12 +69,34 @@ interface SimulationResult {
     attack_paths_eliminated: string[][];
     critical_paths_eliminated: string[][];
   };
+  budget_optimization?: {
+    recommended_controls: Array<{
+      control_id: string;
+      control_name: string;
+      implementation_cost: number;
+      expected_risk_reduction: number;
+    }>;
+    total_cost: number;
+    expected_risk_reduction: number;
+    rw_apds_improvement: number;
+    attack_paths_disrupted: string[][];
+    residual_critical_paths: string[][];
+    algorithm: string;
+  } | null;
   warning?: string;
 }
 
 interface AttackSimulationViewProps {
   scenarioId: string;
 }
+
+const DEFAULT_BUDGET_CONTROLS = [
+  { control_id: "mfa", control_name: "Multi-Factor Authentication", implementation_cost: 20000, affected_techniques: ["T1078"], expected_risk_reduction: 22 },
+  { control_id: "edr", control_name: "Endpoint Detection and Response", implementation_cost: 35000, affected_techniques: ["T1059.001", "T1003", "T1562.001"], expected_risk_reduction: 38 },
+  { control_id: "segmentation", control_name: "Network Segmentation", implementation_cost: 50000, affected_techniques: ["T1021.002", "T1105"], expected_risk_reduction: 47 },
+  { control_id: "email-sandbox", control_name: "Email Sandbox", implementation_cost: 25000, affected_techniques: ["T1566.001"], expected_risk_reduction: 18 },
+  { control_id: "backup", control_name: "Immutable Backup", implementation_cost: 30000, affected_techniques: ["T1486"], expected_risk_reduction: 31 },
+];
 
 export default function AttackSimulationView({ scenarioId }: AttackSimulationViewProps) {
   const [blockedInput, setBlockedInput] = useState<string>("T1059.001, T1003.001");
@@ -92,7 +116,7 @@ export default function AttackSimulationView({ scenarioId }: AttackSimulationVie
     try {
       const techniques = blockedInput.split(',').map(t => t.trim()).filter(Boolean);
       
-      const data = await api.simulation(scenarioId, techniques, { scoring_mode: scoringMode, ...(securityBudget ? { security_budget: Number(securityBudget), available_controls: [] } : {}) }) as unknown as SimulationResult;
+      const data = await api.simulation(scenarioId, techniques, { scoring_mode: scoringMode, ...(securityBudget ? { security_budget: Number(securityBudget), available_controls: DEFAULT_BUDGET_CONTROLS } : {}) }) as unknown as SimulationResult;
       setSimulationData(data);
       if (data.remaining_nodes.length > 0) {
         setSelectedNodeId(data.remaining_nodes[0]);
@@ -409,18 +433,41 @@ export default function AttackSimulationView({ scenarioId }: AttackSimulationVie
           {activeTabPanel === "controls" && (
             <div className="bg-slate-900 border border-slate-800 p-6 rounded-xl space-y-4">
               <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Recommended Defense Controls</h3>
+              {simulationData.budget_optimization && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <MetricCard title="Budget Used" before={securityBudget || 0} after={simulationData.budget_optimization.total_cost} />
+                  <MetricCard title="Expected Reduction" before={0} after={simulationData.budget_optimization.expected_risk_reduction} />
+                  <MetricCard title="RW-APDS Lift" before={0} after={`${simulationData.budget_optimization.rw_apds_improvement}%`} />
+                  <MetricCard title="Optimizer" before="-" after={simulationData.budget_optimization.algorithm} isText />
+                </div>
+              )}
+              {simulationData.budget_optimization?.recommended_controls.length ? (
+                <div className="space-y-2">
+                  {simulationData.budget_optimization.recommended_controls.map((ctrl) => (
+                    <div key={ctrl.control_id} className="bg-slate-950 border border-slate-800 p-3 rounded-lg flex items-center justify-between text-xs">
+                      <span className="font-medium text-cyan-300">{ctrl.control_name}</span>
+                      <span className="font-mono text-slate-400">${ctrl.implementation_cost.toLocaleString()} | reduction {ctrl.expected_risk_reduction}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
               {simulationData.optimized_controls && simulationData.optimized_controls.length > 0 ? (
                 <div className="space-y-2">
                   {simulationData.optimized_controls.map((ctrl, idx) => (
-                    <div key={idx} className="bg-slate-950 border border-slate-800 p-3 rounded-lg flex items-center justify-between text-xs">
+                    <div key={idx} className="bg-slate-950 border border-slate-800 p-3 rounded-lg text-xs">
+                      <div className="flex items-center justify-between gap-4">
                           <span className="font-medium text-emerald-400 flex items-center gap-2">
                           <CheckCircle size={14} /> {ctrl.control_name}
                       </span>
                         <div className="text-right text-[10px] text-slate-500">
                           {ctrl.defensive_technique && <div>{ctrl.defensive_technique}</div>}
+                          {ctrl.risk_reduction_percentage && <div>Risk reduction {ctrl.risk_reduction_percentage}</div>}
                           {ctrl.confidence !== undefined && <div>Confidence {Math.round(ctrl.confidence * 100)}%</div>}
                           {ctrl.affected_attack_nodes && <div>{ctrl.affected_attack_nodes.length} affected node(s)</div>}
                         </div>
+                      </div>
+                      {ctrl.rationale && <p className="mt-3 text-[11px] leading-relaxed text-slate-400">{ctrl.rationale}</p>}
+                      {ctrl.source && <p className="mt-2 text-[10px] text-slate-600">Source: {ctrl.source}</p>}
                     </div>
                   ))}
                 </div>

@@ -91,6 +91,41 @@ export interface GraphAnalysis {
   kill_chain_completion: number;
   coverage_percentage: number;
   blast_radius: Array<{ node_id: string; impacted_count: number; impacted_nodes: string[] }>;
+  asset_risk_signals?: Array<{
+    node_id: string;
+    asset: string;
+    asset_criticality: number;
+    crown_jewel_exposure: number;
+    risk_score: number;
+  }>;
+  trust_boundary_signals?: Array<{
+    node_id: string;
+    crossing_score: number;
+    severity: string;
+  }>;
+  critical_path_explanation?: {
+    path: string[];
+    criticality_score: number;
+    reasons: string[];
+    missing_detection_nodes: string[];
+    crown_jewel_nodes: string[];
+    trust_boundary_nodes: string[];
+    high_risk_nodes: string[];
+  };
+  missing_detection_details?: Array<{
+    node_id: string;
+    technique: string;
+    action_type: string;
+    target: string;
+    reason: string;
+  }>;
+  most_likely_path?: {
+    path: string[];
+    probability: number;
+    impact_score: number;
+    risk_score: number;
+    assumption: string;
+  } | null;
   longest_chain: number;
   shortest_chain: number;
   graph_density: number;
@@ -152,6 +187,22 @@ export interface CollectiveDefenseResult {
     confidence: number;
     source_packages: string[];
   }>;
+  collective_graph: {
+    nodes: Array<{
+      technique_id: string;
+      observed_by_count: number;
+      confidence: number;
+      source_packages: string[];
+      emerging: boolean;
+    }>;
+    edges: Array<{
+      source: string;
+      target: string;
+      observed_by_count: number;
+      confidence: number;
+      source_packages: string[];
+    }>;
+  };
   coverage: {
     local_techniques: string[];
     collective_techniques: string[];
@@ -159,4 +210,39 @@ export interface CollectiveDefenseResult {
     collective_coverage: number;
   };
   recommended_controls: Record<string, string[]>;
+}
+
+export interface CTIFetchResult {
+  source_type: 'taxii' | 'misp' | 'opencti' | 'stix';
+  object_count: number;
+  technique_count: number;
+  indicator_count: number;
+  techniques: string[];
+  indicators: Array<Record<string, unknown>>;
+  normalized_bundle: Record<string, unknown>;
+}
+
+export interface ConsensusResult {
+  model_count: number;
+  consensus_confidence: number;
+  techniques: Array<{
+    technique_id: string;
+    consensus_confidence: number;
+    model_votes: Record<string, number>;
+  }>;
+  agreed_techniques: string[];
+  disputed_techniques: string[];
+}
+
+export interface AttackTimeline {
+  scenario_id: string;
+  events: Array<{
+    timestamp: string;
+    node_id: string;
+    technique: string;
+    tactic: string;
+    action_type: string;
+    target: string;
+    status: 'active' | 'blocked' | 'unreachable';
+  }>;
 }

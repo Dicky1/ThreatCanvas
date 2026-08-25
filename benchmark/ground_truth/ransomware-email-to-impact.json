@@ -1,0 +1,6 @@
+{
+  "scenario_id": "ransomware-email-to-impact",
+  "expected_techniques": ["T1566.001", "T1059.001", "T1547", "T1003", "T1021.002", "T1486"],
+  "expected_order": ["T1566.001", "T1059.001", "T1547", "T1003", "T1021.002", "T1486"],
+  "expected_tactics": ["initial-access", "execution", "persistence", "credential-access", "lateral-movement", "impact"]
+}

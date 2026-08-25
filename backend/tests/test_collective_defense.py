@@ -31,6 +31,12 @@ def test_collective_correlation_preserves_highest_confidence_and_provenance():
     assert technique.provenance == ["source-p-high", "source-p-low"]
     assert result.coverage.local_coverage == 50.0
     assert result.sanitized_indicators[0]["token"] == "[REDACTED]"
+    assert {node.technique_id for node in result.collective_graph.nodes} == {
+        "T1059.001",
+        "T1486",
+    }
+    assert result.collective_graph.edges[0].source == "T1059.001"
+    assert result.collective_graph.edges[0].target == "T1486"
 
 
 def test_tlp_red_and_duplicate_packages_are_rejected():

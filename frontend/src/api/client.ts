@@ -2,6 +2,9 @@ import type {
   CIRSpecification,
   CollectiveDefenseResult,
   CoverageReport,
+  AttackTimeline,
+  ConsensusResult,
+  CTIFetchResult,
   DetectionValidationResult,
   GraphAnalysis,
   Scenario,
@@ -109,6 +112,17 @@ export const api = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   }),
+  fetchCti: (payload: unknown) => request<CTIFetchResult>('/v1/cti/fetch', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }),
+  consensus: (payload: unknown) => request<ConsensusResult>('/v1/consensus/analyze', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }),
+  timeline: (id: string) => request<AttackTimeline>(`/v1/timeline/${id}`),
   importStix: (bundle: unknown) => request<unknown>('/stix/import', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

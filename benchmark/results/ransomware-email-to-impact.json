@@ -1,0 +1,19 @@
+{
+  "attack_graph": {
+    "nodes": [
+      {"step_id": "step1", "tactic": "initial-access", "technique": "T1566.001", "target": "email client", "action_type": "Email Delivery"},
+      {"step_id": "step2", "tactic": "execution", "technique": "T1059.001", "target": "user workstation", "action_type": "PowerShell Execution"},
+      {"step_id": "step3", "tactic": "persistence", "technique": "T1547", "target": "user workstation", "action_type": "Persistence"},
+      {"step_id": "step4", "tactic": "credential-access", "technique": "T1003", "target": "credential store", "action_type": "Credential Dumping"},
+      {"step_id": "step5", "tactic": "lateral-movement", "technique": "T1021.002", "target": "file server", "action_type": "SMB Lateral Movement"},
+      {"step_id": "step6", "tactic": "impact", "technique": "T1486", "target": "shared files", "action_type": "Encryption"}
+    ],
+    "edges": [
+      {"from": "step1", "to": "step2", "relationship": "LEADS_TO"},
+      {"from": "step2", "to": "step3", "relationship": "LEADS_TO"},
+      {"from": "step3", "to": "step4", "relationship": "LEADS_TO"},
+      {"from": "step4", "to": "step5", "relationship": "LEADS_TO"},
+      {"from": "step5", "to": "step6", "relationship": "LEADS_TO"}
+    ]
+  }
+}

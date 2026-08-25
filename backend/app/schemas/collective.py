@@ -43,9 +43,31 @@ class CoverageSummary(BaseModel):
     collective_coverage: float
 
 
+class CollectiveGraphNode(BaseModel):
+    technique_id: str
+    observed_by_count: int
+    confidence: float
+    source_packages: list[str]
+    emerging: bool
+
+
+class CollectiveGraphEdge(BaseModel):
+    source: str
+    target: str
+    observed_by_count: int
+    confidence: float
+    source_packages: list[str]
+
+
+class CollectiveThreatGraph(BaseModel):
+    nodes: list[CollectiveGraphNode]
+    edges: list[CollectiveGraphEdge]
+
+
 class CollectiveDefenseResult(BaseModel):
     shared_techniques: list[SharedTechnique]
     sanitized_indicators: list[dict[str, Any]]
     shared_attack_paths: list[SharedAttackPath]
+    collective_graph: CollectiveThreatGraph
     coverage: CoverageSummary
     recommended_controls: dict[str, list[str]]

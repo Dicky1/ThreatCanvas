@@ -1,353 +1,158 @@
-<div align="center">
+# ThreatCanvas
 
-# 🛡️ ThreatCanvas
+ThreatCanvas is an AI-assisted cyber engineering workspace for turning natural-language attack narratives and CTI packages into structured CIR graphs, ATT&CK-aware analysis, detection artifacts, collective-defense insights, and measurable defense simulations.
 
-**AI-Powered Threat Narrative to Detection Engineering & Defense Optimization Platform**
+The project is built around a clear separation of concerns:
 
-Transform natural language attack scenarios into structured, deterministic attack graphs — validate them, analyze their MITRE ATT&CK coverage, reason about their threat impact, compile production-ready detection rules across multiple SIEM formats, and simulate defensive mitigations to measure their impact on the attack graph.
+- **Threat Modeling / Attack Graph** models the ordered attack path for the active scenario.
+- **Knowledge Graph** explores CIR entities, provenance, evidence, and typed relationships.
+- **Threat Intelligence** imports STIX and normalizes TAXII/MISP/OpenCTI-style payloads.
+- **Collective Defense** correlates sanitized packages into shared techniques, paths, and a collective threat graph.
+- **Simulation** measures how blocked techniques disrupt attack paths using APDS, RW-APDS, D3FEND-aligned recommendations, and optional budget optimization.
 
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.116-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0-D71F00?logo=python&logoColor=white)](https://www.sqlalchemy.org/)
-[![License](https://img.shields.io/badge/license-MIT-blue)](#license)
+## Current Capabilities
 
-</div>
+- Natural-language scenario parsing into CIR v2.
+- CIR validation, normalization, evidence enrichment, provenance, confidence, and ATT&CK resolution.
+- Attack graph visualization with search, relationship filtering, critical path, high-risk nodes, blast radius, and graph metrics.
+- Critical path explainer with missing detection details, asset-aware risk signals, trust-zone grouping, and most-likely path probability.
+- Attack graph time machine that replays ordered scenario steps.
+- Knowledge Graph explorer for entities, typed relationships, provenance, related attack steps, and STIX metadata.
+- MITRE ATT&CK coverage analysis.
+- Threat reasoning and assessment.
+- Sigma, KQL, and SPL detection artifact generation.
+- Detection validation with syntax, schema, telemetry, ATT&CK mapping, malicious-event testing, benign-event testing, precision, recall, and F1.
+- Attack simulation with APDS/RW-APDS, before/after metrics, removed nodes, remaining nodes, and optimized controls.
+- Bundled D3FEND-aligned seed mappings for defense explanations.
+- Budget-aware defense optimization using supplied controls.
+- STIX 2.1 import/export.
+- CTI connector normalization for STIX/TAXII/MISP/OpenCTI-style JSON payloads.
+- Multi-model CIR consensus analysis for agreed/disputed ATT&CK techniques.
+- Collective defense correlation and collective threat graph visualization.
+- Research telemetry for parse runs.
+- Benchmark fixtures, sample CIR outputs, and a deterministic benchmark evaluator.
+- JWT authentication, scenario history, prompt library UI, and client-side notifications.
 
----
-
-## 📖 Overview
-
-**ThreatCanvas** is an AI-assisted cyber engineering workspace that transforms natural language attack narratives into deterministic cyber attack graphs, validates them, analyzes MITRE ATT&CK coverage, reasons about attacker objectives and threat severity, compiles production-ready detection rules, and finally simulates defensive mitigations to measure their impact on the attack graph.
-
-Unlike traditional SIEMs or EDR platforms, ThreatCanvas focuses on **Detection Engineering** by providing an end-to-end workflow that converts threat intelligence into structured attack models, detection artifacts, threat assessments, and quantitative attack simulation for defense optimization.
-
-The platform combines LLM-assisted parsing with deterministic graph analytics and rule-based reasoning, enabling analysts to evaluate not only how attacks occur, but also how defensive controls disrupt attack paths before deployment.
-
----
-
-## 📸 Preview
-
-> Screenshots below are placeholders — drop your own images into `docs/images/` with these filenames and they'll render automatically on GitHub.
-
-### Dashboard — Threat Narrative Processor
-![Dashboard](docs/images/dashboard.png)
-
-### Threat Modeling Workspace
-![Threat Modeling](docs/images/threat-modeling.png)
-
-### Attack Graph Visualization
-![Attack Graph](docs/images/attack-graph.png)
-
-### Coverage Analysis
-![Coverage Analysis](docs/images/coverage-analysis.png)
-
-### Threat Assessment
-![Threat Assessment](docs/images/threat-assessment.png)
-
-### Attack Simulation
-![Attack Simulation](docs/images/attack-simulation.png)
-
-### Simulation Comparison
-![Simulation Comparison](docs/images/simulation-comparison.png)
-
-### Research Metrics & Experiment Telemetry
-![Research Metrics](docs/images/research-metrics-telemetry.png)
-
-### Collective Defense
-![Collective Defense](docs/images/collective-defense.png)
-
-### Defense Optimization
-![Defense Optimization](docs/images/defense-optimization.png)
-
-<div align="center">
-
-**Narrative → Generate → Attack Graph → Coverage → Threat Assessment → Attack Simulation & Defense Optimization**
-*(from raw text to actionable detection engineering and defense optimization output, in one workspace)*
-
-</div>
-
----
-
-## 🔄 How It Works
-
-```
-Natural Language Narrative
-            │
-            ▼
-   Intelligent CIR Engine        ← LLM-based parsing into structured graph
-            │
-            ▼
-   CIR Validation Engine         ← deterministic structural integrity checks
-            │
-            ▼
-   Detection Compiler            ← Sigma · KQL · SPL rule generation
-            │
-            ▼
-   MITRE Coverage Analysis       ← kill chain & tactic/technique scoring
-            │
-            ▼
-   Attack Graph Analysis         ← critical path, density, complexity, maturity
-            │
-            ▼
-   Threat Reasoning Engine       ← severity, objective, detection gaps, priority
-            │
-            ▼
-   Attack Simulation & Defense Optimization   ← mitigation simulation, APDS, optimized controls
-```
-
----
-
-## 🔬 Research Contributions
-
-ThreatCanvas introduces several engineering contributions at the intersection of LLMs and structured security data modeling:
-
-- **Natural Language → Deterministic Cyber Intermediate Representation (CIR)** — a structured, schema-validated intermediate graph format that constrains LLM output into consistent, machine-actionable attack representations.
-- **Deterministic CIR Validation Engine** — rule-based structural validation that catches malformed or logically inconsistent attack graphs before they propagate downstream.
-- **Multi-Platform Detection Rule Compiler** — a single CIR graph compiles into multiple SIEM-native detection formats (Sigma, KQL, SPL) without re-parsing the original narrative.
-- **MITRE ATT&CK Coverage Analysis** — automated scoring of kill chain completeness, tactic/technique coverage, and gap identification against the ATT&CK framework.
-- **Attack Graph Analysis** — deterministic graph-theoretic metrics (critical path, density, complexity, maturity) computed directly from the CIR structure.
-- **Threat Reasoning & Recommendation Engine** — rule-based reasoning layer that derives threat severity, attacker objective, and detection recommendations from graph and coverage output.
-- **Attack Simulation & Defense Optimization Engine** — a deterministic attack graph simulation engine capable of blocking selected MITRE ATT&CK techniques, recalculating graph topology through cascading reachability analysis, measuring Attack Path Disruption Score (APDS), and recommending optimized defensive controls based on quantified risk reduction.
-
-*(This section is intentionally structured to map cleanly onto a paper's contribution list — extend with citations as work is published.)*
-
----
-
-## ✨ Feature List
-
-- **🧠 Natural Language → Attack Graph** — Describe an attack scenario conversationally; the LLM parser converts it into a structured CIR graph of tactics, techniques, actors, and relationships.
-- **✅ Deterministic Validation** — Every generated graph is validated for structural integrity before any detection artifact is compiled, reducing hallucinated or inconsistent attack logic.
-- **📈 Attack Graph Analysis** — Deterministic graph metrics including critical path, node/edge density, component count, average degree, complexity score, and overall graph maturity rating.
-- **🧠 Threat Assessment** — Rule-based threat reasoning that derives severity, likely attack objective, detection gaps, and prioritized recommendations from the analyzed graph.
-- **🎯 MITRE ATT&CK Coverage Scoring** — Automatic analysis of kill chain coverage, tactic/technique completeness, and actionable recommendations for gaps.
-- **⚙️ Multi-Format Detection Compilation** — One CIR graph compiles into **Sigma**, **KQL** (Microsoft Sentinel/Defender), and **SPL** (Splunk) rules simultaneously.
-- **🛡️ Attack Simulation & Defense Optimization** — Simulate defensive mitigations by blocking selected MITRE ATT&CK techniques and automatically recomputing the attack graph to evaluate defensive effectiveness.
-- **📉 Attack Path Disruption Score (APDS)** — Quantifies how effectively defensive actions disrupt the attack chain using deterministic graph reachability analysis.
-- **📊 Before vs After Threat Comparison** — Compare severity, risk score, critical path, graph density, blast radius, node count, and edge count before and after simulated mitigation.
-- **🎯 Optimized Defense Recommendations** — Automatically prioritize mitigation controls according to measurable risk reduction and affected attack techniques.
-- **🧩 Cascading Attack Path Analysis** — Detect downstream attack steps that become unreachable after blocking an upstream technique.
-- **📚 Prompt Library** — A curated collection of 20+ real-world attack scenario templates across Ransomware, APT Campaigns, Insider Threat, Cloud Security, Phishing, Web Application, Supply Chain, and IoT/OT categories.
-- **🔔 Real-Time Activity Notifications** — Every meaningful action (parsing complete, artifact generated, coverage analyzed, simulation completed) surfaces as a live, event-driven notification in the UI.
-- **🔐 JWT Authentication** — Secure token-based auth with bcrypt password hashing, protecting the workspace and ready to extend to multi-user/role-based access.
-- **🕘 Scenario History** — Every processed scenario and its generated CIR graph is persisted and retrievable for later review or re-compilation.
-- **🧬 CIR v2 Knowledge Graph** — Supports actors, techniques, tactics, assets, identities, vulnerabilities, observables, detection rules, controls, trust zones, evidence, provenance, confidence, timestamps, and typed relationships.
-- **🔎 Graph Workspace** — Search/filter graph relationships, switch to a knowledge-graph view, inspect provenance, and review critical paths and blast radius.
-- **🛰️ STIX 2.1 Interoperability** — Import validated STIX bundles and export scenario intelligence as STIX.
-- **🤝 Collective Defense** — Correlate sanitized shared techniques, indicators, attack paths, and defensive recommendations.
-- **📐 RW-APDS & Budget Optimization** — Compare APDS with risk-weighted APDS and evaluate controls against an optional security budget.
-- **🧪 Research Telemetry** — Records parse duration, run status, graph size, and validation metadata for reproducible experiments.
-
----
-
-## Attack Simulation & Defense Optimization
-
-ThreatCanvas introduces a deterministic attack simulation engine that evaluates defensive strategies by virtually blocking one or more MITRE ATT&CK techniques from the generated attack graph.
-
-Unlike stochastic cyber range simulations, ThreatCanvas performs graph-based reachability analysis to deterministically recompute the attack graph after mitigation.
-
-The simulation engine provides:
-
-- Attack Chain Status
-- Attack Path Disruption Score (APDS)
-- Risk Score Reduction
-- Severity Comparison
-- Critical Path Reduction
-- Remaining Attack Nodes
-- Removed / Disrupted Nodes
-- Graph Topology Comparison
-- Recommended Defensive Controls
-- Executive Simulation Summary
-
-This enables security analysts to evaluate the effectiveness of proposed mitigations before implementing them in production environments.
-
----
-
-## 🏗️ Architecture
-
-```
-                            ┌───────────────┐
-                            │   LLM Parser   │
-                            └───────┬───────┘
-                                    │
-                                    ▼
-                         ┌────────────────────┐
-                         │  CIR Validation     │
-                         └──────────┬──────────┘
-                                    │
-              ┌─────────────────────┼─────────────────────┐
-              ▼                     ▼                     ▼
-     ┌─────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-     │ Detection        │  │ Coverage Engine   │  │ Graph Analysis    │
-     │ Compiler          │  │ (MITRE ATT&CK)    │  │ (metrics)         │
-     │ Sigma·KQL·SPL     │  │                    │  │                   │
-     └─────────┬─────────┘  └─────────┬─────────┘  └─────────┬─────────┘
-               │                      │                       │
-               └──────────────────────┴───────────────────────┘
-                                       │
-                                       ▼
-                         ┌─────────────────────────┐
-                         │  Threat Reasoning Engine │
-                         └────────────┬────────────┘
-                                      │
-                                      ▼
-                    ┌────────────────────────────────────┐
-                    │  Attack Simulation & Defense         │
-                    │  Optimization                        │
-                    └────────────────┬─────────────────────┘
-                                      │
-                                      ▼
-                         ┌─────────────────────────┐
-                         │  Executive Simulation Report │
-                         └─────────────────────────┘
-```
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        FRONTEND (React + Vite)                   │
-│  Dashboard · History · Prompt Library · Settings                 │
-│  Zustand Stores: useThreatStore · useAuthStore · useNotification  │
-└───────────────────────────┬───────────────────────────────────────┘
-                             │ REST API (JWT Bearer)
-┌───────────────────────────▼───────────────────────────────────────┐
-│                       BACKEND (FastAPI)                            │
-│   Auth (JWT) · LLM Parser · CIR Validator/Normalizer               │
-│   Coverage Analyzer · Graph Analysis Engine · Threat Reasoning      │
-│   Attack Simulation & Defense Optimization Engine                   │
-│   Compilers: Sigma · KQL · SPL                                      │
-│   Repository Layer (SQLAlchemy) ── SQLite / PostgreSQL             │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🧪 Example
-
-**Input** (typed directly into the Dashboard, or loaded from the Prompt Library):
+## Architecture
 
 ```text
-An attacker sends a phishing email with a malicious PowerShell script and
-simultaneously performs credential dumping to harvest high-privilege domain
-hashes. Following this, the attacker establishes persistence using scheduled
-tasks, disables Windows Defender endpoint protection, conducts internal
-network discovery, moves laterally across servers using PsExec, and finally
-deploys ransomware to completely encrypt all core enterprise databases and
-systems.
+Threat Narrative / CTI / STIX
+            |
+            v
+LLM Parser + CTI Normalization
+            |
+            v
+CIR v2 Graph + Entities + Evidence + Provenance
+            |
+            +--> ATT&CK Validation / Coverage
+            +--> Knowledge Graph Explorer
+            +--> Detection Compilation + Validation
+            +--> Graph Analysis + Critical Path Explainer
+            +--> Threat Reasoning
+            +--> Simulation + APDS/RW-APDS + D3FEND + Budget Optimization
+            +--> Collective Defense Graph
 ```
 
-**Generated output**, in order:
-
-1. **CIR Graph** — 8 nodes, 8 edges spanning Initial Access → Credential Access → Persistence → Defense Evasion → Discovery → Lateral Movement → Impact
-2. **MITRE Coverage Report** — kill chain coverage %, covered/missing tactics, complexity and maturity rating
-3. **Attack Graph Metrics** — critical path length, graph density, average degree, component count
-4. **Detection Artifacts** — matching Sigma, KQL, and SPL rules, one per node/technique
-5. **Threat Assessment** — derived severity, primary attack objective (e.g. *data destruction via ransomware*), and prioritized detection recommendations
-6. **Attack Simulation Report** — generated after selecting techniques to block, including:
-   - Attack Path Disruption Score (APDS)
-   - Risk Reduction
-   - Attack Chain Status
-   - Before vs After Comparison
-   - Remaining Nodes
-   - Removed Nodes
-   - Optimized Controls
-
----
-
-## 🧰 Tech Stack
-
-| Layer | Technology |
-|---|---|
-| **Backend Framework** | FastAPI, Uvicorn |
-| **ORM / Database** | SQLAlchemy 2.0, SQLite (dev) / PostgreSQL (prod-ready via `psycopg`) |
-| **Auth** | JWT (`python-jose`), bcrypt password hashing (`passlib`) |
-| **Schema Validation** | Pydantic v2 |
-| **Task Queue** | Celery + Redis (for async/long-running processing) |
-| **LLM Integration** | OpenAI-compatible API client |
-| **Frontend Framework** | React 18, TypeScript, Vite |
-| **State Management** | Zustand |
-| **Routing** | React Router v6 |
-| **Styling** | Tailwind CSS |
-| **Icons** | Lucide React |
-
----
-
-## 📁 Project Structure
-
+```text
+frontend/ React 19 + TypeScript + Vite + React Router 7 + Zustand
+    |
+    | REST API
+    v
+backend/ FastAPI + Pydantic v2 + SQLAlchemy + SQLite/PostgreSQL
 ```
+
+## Project Structure
+
+```text
 ThreatCanvas/
 ├── backend/
 │   ├── app/
-│   │   ├── api/endpoints/              # parser, compilers, coverage, graph,
-│   │   │                                # reasoning, simulation, STIX, collective,
-│   │   │                                # research telemetry, benchmark, auth
-│   │   ├── core/                       # config, database, JWT security
-│   │   ├── data/                       # local detection fixtures and mappings
-│   │   ├── models/                     # ScenarioRecord, ExperimentMetric, users
-│   │   ├── repositories/               # scenario persistence and CIR loading
-│   │   ├── schemas/                    # CIR v2, detection, simulation, collective
-│   │   ├── services/                   # ATT&CK, CIR, evidence, STIX, D3FEND,
-│   │   │                                # compilers, coverage, simulation,
-│   │   │                                # RW-APDS, optimization, validation
-│   │   └── main.py                     # FastAPI application and route registration
-│   └── tests/                          # backend unit and integration tests
-├── docs/images/                        # current and legacy feature screenshots
+│   │   ├── api/endpoints/       # auth, parser, coverage, graph, reasoning,
+│   │   │                         # simulation, STIX, CTI, consensus, timeline
+│   │   ├── core/                # config, database, security
+│   │   ├── data/                # detection fixtures and D3FEND seed mappings
+│   │   ├── models/              # SQLAlchemy models
+│   │   ├── repositories/        # persistence helpers
+│   │   ├── schemas/             # Pydantic API/CIR schemas
+│   │   └── services/            # parsing, validation, graph, CTI, STIX,
+│   │                             # D3FEND, simulation, benchmark support
+│   ├── tests/
+│   ├── requirements.txt
+│   └── README.md
+├── benchmark/
+│   ├── narratives/
+│   ├── ground_truth/
+│   ├── results/
+│   └── evaluation/
+├── docs/images/
 └── frontend/
     ├── src/
-    │   ├── api/                        # typed REST client
-    │   ├── components/                 # graph, CIR, coverage, simulation, layout,
-    │   │                                # shared primitives, inspectors
-    │   ├── pages/                      # Threat Modeling, Attack Graph, Knowledge
-    │   │                                # Graph, Detection, Simulation, Collective,
-    │   │                                # Intelligence, Benchmark, Research, history
-    │   ├── store/                      # threat, auth, and notification Zustand stores
-    │   ├── types/                      # shared API and CIR TypeScript types
-    │   ├── test/                       # Vitest setup and component tests
-    │   └── App.tsx                     # protected route and workspace routing
-    ├── vite.config.ts
-    └── vitest.config.ts
+    │   ├── api/
+    │   ├── components/
+    │   ├── pages/
+    │   ├── store/
+    │   ├── types/
+    │   └── utils/
+    └── package.json
 ```
 
----
+## Backend Setup
 
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Python 3.13+
-- Node.js 18+
-- (Optional) Redis, for Celery task queue features
-
-### Backend Setup
+Run from `backend/`:
 
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+python -m venv .venv
+```
 
-pip install -r requirements.txt
+Activate the environment:
 
-# Create your .env file
+```bash
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+
+# macOS/Linux
+source .venv/bin/activate
+```
+
+Install dependencies and create local configuration:
+
+```bash
+python -m pip install -r requirements.txt
 cp .env.example .env
-# Generate a secret key for JWT signing:
-python -c "import secrets; print(secrets.token_urlsafe(32))"
-# Paste the output into SECRET_KEY in .env
+```
 
+On PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Set a real `SECRET_KEY` in `.env`:
+
+```bash
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Start the API:
+
+```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-The API will be available at `http://localhost:8000`, with interactive docs at `http://localhost:8000/docs`.
+The backend runs at `http://localhost:8000`; OpenAPI docs are available at `http://localhost:8000/docs`.
 
-### Frontend Setup
+## Frontend Setup
+
+Run from `frontend/`:
 
 ```bash
-cd frontend
 npm install
 npm run dev
 ```
 
-The app will be available at `http://localhost:5173`.
+The frontend normally runs at `http://localhost:5173`. If that port is busy, Vite will choose the next available port.
 
-### Create Your First User
+## First User
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/auth/register \
@@ -355,92 +160,114 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
   -d '{"username":"analyst","email":"analyst@threatcanvas.local","full_name":"Security Analyst","password":"a-strong-password"}'
 ```
 
-Then log in through the frontend at `http://localhost:5173/login`.
+Then sign in through the frontend login page.
 
----
+## Environment Variables
 
-## 🔑 Environment Variables
-
-| Variable | Description | Default |
+| Variable | Purpose | Default |
 |---|---|---|
-| `DATABASE_URL` | SQLAlchemy connection string | `sqlite:///./threatcanvas.db` |
-| `SECRET_KEY` | JWT signing secret — **must be overridden in production** | — |
+| `PROJECT_NAME` | Application name | `ThreatCanvas AI` |
+| `ENVIRONMENT` | Runtime environment label | `development` |
+| `OPENAI_API_KEY` | LLM provider API key | empty |
+| `OPENAI_API_BASE` | OpenAI-compatible API base URL | `YOUR API BASE URL` |
+| `DATABASE_URL` | SQLAlchemy database URL | `sqlite:///./threatcanvas.db` |
+| `REDIS_URL` | Reserved for Redis-backed extensions | `redis://localhost:6379/0` |
+| `SECRET_KEY` | JWT signing secret | must be replaced |
 | `ALGORITHM` | JWT signing algorithm | `HS256` |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | Token lifetime | `1440` (24h) |
-| `OPENAI_API_KEY` | LLM provider API key | — |
-| `OPENAI_API_BASE` | LLM provider base URL | — |
-| `REDIS_URL` | Redis connection for Celery | `redis://localhost:6379/0` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime | `1440` |
+| `ATTACK_STIX_PATH` | Optional local ATT&CK STIX bundle path | unset |
+| `D3FEND_MAPPING_PATH` | Optional custom D3FEND mapping JSON path | bundled seed mapping |
+| `RW_APDS_WEIGHTS_JSON` | Optional RW-APDS weight override JSON | built-in weights |
 
----
+## API Reference
 
-## 📡 API Reference
-
-All endpoints are prefixed with `/api/v1`. Full interactive documentation (with live request/response schemas) is available via Swagger UI at `/docs` once the backend is running — treat that as the source of truth over this table.
+Most endpoints are under `/api/v1`. STIX endpoints currently use `/api/stix`. Use `/docs` from the running backend as the source of truth for request/response schemas.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/auth/register` | Register a new user |
-| `POST` | `/auth/login` | Authenticate and receive a JWT (OAuth2 form body) |
-| `POST` | `/parse` | Parse a natural language scenario into a CIR graph |
-| `GET` | `/scenarios` | List stored scenarios |
-| `GET` | `/scenarios/{scenario_id}/evidence` | Read scenario evidence and provenance |
-| `GET` | `/coverage/{scenario_id}` | Get MITRE ATT&CK coverage report |
-| `GET` | `/compile/{type}/{scenario_id}` | Compile detection artifact (`sigma` \| `kql` \| `spl`) |
-| `GET`/`POST` | `/graph-analysis/...` ⚠️ | Attack graph metrics (critical path, density, complexity) — verify exact route in `graph_analysis.py` |
-| `GET`/`POST` | `/reasoning/...` ⚠️ | Threat reasoning & recommendations — verify exact route in `reasoning.py` |
-| `POST` | `/{scenario_id}` | Run APDS/RW-APDS simulation, optional security budget, and control optimization |
-| `GET` | `/research/metrics/{scenario_id}` | Read recorded experiment telemetry |
-| `POST` | `/stix/import` | Import a validated STIX 2.1 bundle |
-| `GET` | `/stix/export/{scenario_id}` | Export a scenario as STIX |
-| `POST` | `/collective/analyze` | Correlate a sanitized collective-defense package |
+| `POST` | `/api/v1/auth/register` | Register a user |
+| `POST` | `/api/v1/auth/login` | Login and receive a JWT |
+| `POST` | `/api/v1/parse` | Parse a narrative into CIR v2 |
+| `GET` | `/api/v1/scenarios` | List saved scenarios |
+| `GET` | `/api/v1/scenarios/{scenario_id}` | Read one saved scenario |
+| `DELETE` | `/api/v1/scenarios/{scenario_id}` | Delete a saved scenario |
+| `GET` | `/api/v1/scenarios/{scenario_id}/evidence` | Read scenario evidence |
+| `GET` | `/api/v1/coverage/{scenario_id}` | ATT&CK coverage report |
+| `GET` | `/api/v1/graph-analysis/{scenario_id}` | Graph metrics, critical path explanation, probability, asset risk, and trust signals |
+| `GET` | `/api/v1/reasoning/{scenario_id}` | Threat reasoning and recommendations |
+| `GET` | `/api/v1/compile/{type}/{scenario_id}` | Compile `sigma`, `kql`, or `spl` |
+| `POST` | `/api/v1/validate/{type}/{scenario_id}` | Validate generated detection artifacts |
+| `POST` | `/api/v1/{scenario_id}` | Run APDS/RW-APDS simulation and defense optimization |
+| `GET` | `/api/v1/research/metrics/{scenario_id}` | Read research telemetry |
+| `GET` | `/api/v1/benchmark/{scenario_id}` | Read active-scenario benchmark summary |
+| `POST` | `/api/v1/collective/analyze` | Analyze sanitized collective-defense packages |
+| `POST` | `/api/v1/cti/fetch` | Normalize STIX/TAXII/MISP/OpenCTI-style JSON payloads |
+| `POST` | `/api/v1/consensus/analyze` | Analyze multi-model CIR consensus |
+| `GET` | `/api/v1/timeline/{scenario_id}` | Build attack timeline replay data |
+| `POST` | `/api/stix/import` | Import STIX 2.1 bundle |
+| `GET` | `/api/stix/export/{scenario_id}` | Export scenario as STIX |
+| `GET` | `/health` | Health check |
 
-**Not yet backend-backed** (currently frontend-only, for transparency):
-- **Notifications** — generated client-side in `useNotificationStore`, triggered by frontend actions. No `/notifications` endpoint exists yet.
-- **Prompt Library** — currently a hardcoded `PROMPT_DATABASE` array in the frontend. No `/prompt-library` endpoint exists yet; a natural next step is moving this to a backend-managed table.
-- **Telemetry scope** — current research telemetry records parse runs and graph/validation metadata. Token usage, provider cost, and historical detection F1 require provider-specific instrumentation and are not inferred.
+## Benchmark
 
----
+The benchmark folder includes sample narratives, ground truth, sample CIR results, and a deterministic evaluator.
 
-## 🗺️ Roadmap
+Run from the repository root:
 
-### ✅ Completed
+```bash
+python -m benchmark.evaluation.report --cir-dir benchmark/results --output benchmark/results/report.json
+```
 
-- ✅ Natural Language → CIR Graph
-- ✅ CIR Validation Engine
-- ✅ Multi-format Detection Compiler
-- ✅ MITRE ATT&CK Coverage Analysis
-- ✅ Attack Graph Analysis
-- ✅ Threat Reasoning Engine
-- ✅ Attack Simulation & Defense Optimization
-- ✅ CIR v2 schema and typed knowledge-graph relationships
-- ✅ STIX 2.1 import/export
-- ✅ Collective-defense correlation
-- ✅ Research parse telemetry
+The evaluator reports:
 
-### ⏭️ Next Roadmap
+- CIR schema validity
+- ATT&CK precision, recall, and F1
+- tactic recall
+- graph ordering accuracy
 
-- [ ] PDF Reporting
-- [ ] Graph Export (GraphML / JSON)
-- [ ] Batch Attack Simulation
-- [ ] Multi-user Collaboration
-- [ ] Role-based access control (RBAC)
-- [ ] ATT&CK Navigator Export
-- [ ] YARA-L Compiler
-- [ ] EQL Compiler
-- [ ] Persist prompt library templates to the database
-- [ ] Backend endpoint for notification history/audit trail
-- [ ] Automated regression testing for CIR normalization edge cases
+The sample results are intentionally small demonstration fixtures. Replace or extend `benchmark/results/*.json` with parser outputs to produce real experiment numbers.
 
----
+## Tests
 
-## 📄 License
+Backend:
 
-This project is licensed under the MIT License.
+```powershell
+cd backend
+$env:PYTHONPATH='.'
+pytest
+```
 
----
+Frontend:
 
-<div align="center">
+```powershell
+cd frontend
+npm run build
+npm run lint
+npm run test
+```
 
-Built for security researchers and detection engineers who think in graphs, not just logs.
+Benchmark:
 
-</div>
+```powershell
+python -m benchmark.evaluation.report --cir-dir benchmark/results
+```
+
+Current local verification status:
+
+- Backend tests: `32 passed`
+- Frontend build: passing
+- Frontend lint: passing
+- Benchmark sample report: `3` scenarios
+
+## Current Limitations
+
+- TAXII, MISP, and OpenCTI support is a generic JSON connector contract, not a full vendor-specific production integration with pagination, auth flows, and long-running sync.
+- D3FEND uses a bundled seed mapping unless `D3FEND_MAPPING_PATH` points to a richer mapping file.
+- Benchmark sample results are demonstration fixtures; paper-grade numbers should be generated from fresh parser runs and larger ground truth.
+- Prompt Library is currently frontend-managed data, not a backend CRUD resource.
+- Notifications are client-side only; there is no notification history endpoint yet.
+- Redis/Celery dependencies are present for future async extensions, but the current request path is synchronous.
+
+## License
+
+MIT

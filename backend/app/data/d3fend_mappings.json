@@ -1,0 +1,60 @@
+{
+  "mappings": [
+    {
+      "attack_technique": "T1566.001",
+      "defensive_technique": "Email Filtering",
+      "rationale": "Filters malicious spearphishing attachments before delivery and reduces initial-access success.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.74
+    },
+    {
+      "attack_technique": "T1059.001",
+      "defensive_technique": "Script Execution Analysis",
+      "rationale": "Detects and constrains suspicious PowerShell execution, encoded commands, and script interpreter abuse.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.78
+    },
+    {
+      "attack_technique": "T1003",
+      "defensive_technique": "Credential Hardening",
+      "rationale": "Reduces credential dumping impact by hardening credential stores and monitoring privileged credential access.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.76
+    },
+    {
+      "attack_technique": "T1021.002",
+      "defensive_technique": "Network Segmentation",
+      "rationale": "Limits SMB and Windows Admin Share lateral movement by constraining reachable administrative paths.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.8
+    },
+    {
+      "attack_technique": "T1486",
+      "defensive_technique": "File Backup and Recovery",
+      "rationale": "Reduces ransomware impact by preserving recoverable copies of encrypted data and shortening restoration time.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.77
+    },
+    {
+      "attack_technique": "T1105",
+      "defensive_technique": "Network Traffic Analysis",
+      "rationale": "Identifies suspicious ingress tool transfer and command-and-control staging over network channels.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.72
+    },
+    {
+      "attack_technique": "T1078",
+      "defensive_technique": "Multi-Factor Authentication",
+      "rationale": "Raises the cost of valid-account abuse and blocks many credential-only access paths.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.79
+    },
+    {
+      "attack_technique": "T1562.001",
+      "defensive_technique": "Endpoint Sensor Health Monitoring",
+      "rationale": "Detects attempts to disable security tools and preserves defensive visibility during attack execution.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.73
+    }
+  ]
+}

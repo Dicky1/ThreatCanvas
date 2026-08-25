@@ -1,0 +1,6 @@
+{
+  "scenario_id": "lateral-movement-admin-shares",
+  "expected_techniques": ["T1078", "T1021.002", "T1569.002", "T1547"],
+  "expected_order": ["T1078", "T1021.002", "T1569.002", "T1547"],
+  "expected_tactics": ["defense-evasion", "persistence", "lateral-movement", "execution"]
+}

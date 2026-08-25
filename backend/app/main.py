@@ -10,6 +10,9 @@ from app.api.endpoints import stix
 from app.api.endpoints import collective
 from app.api.endpoints import research
 from app.api.endpoints import benchmark
+from app.api.endpoints import cti
+from app.api.endpoints import consensus
+from app.api.endpoints import timeline
 from app.models import user 
 from app.models import experiment
 
@@ -36,6 +39,9 @@ app.include_router(stix.router)
 app.include_router(collective.router)
 app.include_router(research.router, prefix="/api/v1")
 app.include_router(benchmark.router, prefix="/api/v1")
+app.include_router(cti.router, prefix="/api/v1")
+app.include_router(consensus.router, prefix="/api/v1")
+app.include_router(timeline.router, prefix="/api/v1")
 
 @app.get("/health")
 async def health_check():

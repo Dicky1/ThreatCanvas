@@ -1,7 +1,10 @@
 from typing import Any
 
 from app.schemas.collective import (
+    CollectiveGraphEdge,
+    CollectiveGraphNode,
     CollectiveDefenseResult,
+    CollectiveThreatGraph,
     CoverageSummary,
     SharedAttackPath,
     SharedTechnique,
@@ -75,6 +78,7 @@ class CollectiveDefenseEngine:
         shared_ids = {item.technique_id for item in shared}
         local_ids = {technique.upper() for technique in local_detected_techniques or []}
         denominator = len(shared_ids)
+        collective_graph = self._build_collective_graph(shared, paths)
         controls = {
             technique: list(self.threat_engine.MITRE_CONTROLS.get(technique, []))
             for technique in sorted(shared_ids)
@@ -91,6 +95,7 @@ class CollectiveDefenseEngine:
                 )
                 for path, data in sorted(paths.items())
             ],
+            collective_graph=collective_graph,
             coverage=CoverageSummary(
                 local_techniques=sorted(local_ids),
                 collective_techniques=sorted(shared_ids),
@@ -100,6 +105,48 @@ class CollectiveDefenseEngine:
                 collective_coverage=100.0 if denominator else 0.0,
             ),
             recommended_controls=controls,
+        )
+
+    @staticmethod
+    def _build_collective_graph(
+        shared: list[SharedTechnique],
+        paths: dict[tuple[str, ...], dict[str, Any]],
+    ) -> CollectiveThreatGraph:
+        node_lookup = {
+            item.technique_id: CollectiveGraphNode(
+                technique_id=item.technique_id,
+                observed_by_count=len(item.source_packages),
+                confidence=item.confidence,
+                source_packages=item.source_packages,
+                emerging=len(item.source_packages) > 1 and item.confidence >= 0.75,
+            )
+            for item in shared
+        }
+        edge_lookup: dict[tuple[str, str], dict[str, Any]] = {}
+        for path, data in paths.items():
+            packages = set(data["packages"])
+            for index in range(len(path) - 1):
+                key = (path[index], path[index + 1])
+                edge = edge_lookup.setdefault(
+                    key,
+                    {"confidence": 0.0, "packages": set()},
+                )
+                edge["confidence"] = max(edge["confidence"], data["confidence"])
+                edge["packages"].update(packages)
+
+        edges = [
+            CollectiveGraphEdge(
+                source=source,
+                target=target,
+                observed_by_count=len(data["packages"]),
+                confidence=data["confidence"],
+                source_packages=sorted(data["packages"]),
+            )
+            for (source, target), data in sorted(edge_lookup.items())
+        ]
+        return CollectiveThreatGraph(
+            nodes=sorted(node_lookup.values(), key=lambda node: node.technique_id),
+            edges=edges,
         )
 
     @staticmethod

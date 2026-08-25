@@ -75,13 +75,15 @@ class DefenseOptimizationEngine:
                     path for path in (attack_paths or []) if set(path) & set(affected_nodes)
                 ]
                 for mapping in self.d3fend_service.lookup(tech_id):
+                    risk_score = self.tactic_weights.get(
+                        self.tactic_map.get(str(raw_tactic).upper(), ""), 10
+                    )
+                    percentage_val = round((risk_score / max(1, total_risk_score)) * 100, 1)
                     d3fend_results.append(
                         OptimizedControl(
                             control_name=mapping.defensive_technique,
-                            risk_reduction_score=self.tactic_weights.get(
-                                self.tactic_map.get(str(raw_tactic).upper(), ""), 10
-                            ),
-                            risk_reduction_percentage="0%",
+                            risk_reduction_score=risk_score,
+                            risk_reduction_percentage=f"{percentage_val}%",
                             affected_techniques=[tech_id],
                             defensive_technique=mapping.defensive_technique,
                             rationale=mapping.rationale,

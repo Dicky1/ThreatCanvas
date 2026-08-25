@@ -1,0 +1,86 @@
+{
+  "summary": {
+    "scenario_count": 3,
+    "cir_validity_rate": 100.0,
+    "attack_precision": 100.0,
+    "attack_recall": 100.0,
+    "attack_f1": 100.0,
+    "tactic_recall": 100.0,
+    "graph_ordering_accuracy": 100.0
+  },
+  "scenarios": [
+    {
+      "scenario_id": "credential-theft-powershell",
+      "cir_schema_valid": true,
+      "attack_precision": 100.0,
+      "attack_recall": 100.0,
+      "attack_f1": 100.0,
+      "tactic_recall": 100.0,
+      "graph_ordering_accuracy": 100.0,
+      "expected_techniques": [
+        "T1059.001",
+        "T1003",
+        "T1082",
+        "T1083"
+      ],
+      "predicted_techniques": [
+        "T1059.001",
+        "T1003",
+        "T1082",
+        "T1083"
+      ],
+      "missing_techniques": [],
+      "extra_techniques": []
+    },
+    {
+      "scenario_id": "lateral-movement-admin-shares",
+      "cir_schema_valid": true,
+      "attack_precision": 100.0,
+      "attack_recall": 100.0,
+      "attack_f1": 100.0,
+      "tactic_recall": 100.0,
+      "graph_ordering_accuracy": 100.0,
+      "expected_techniques": [
+        "T1078",
+        "T1021.002",
+        "T1569.002",
+        "T1547"
+      ],
+      "predicted_techniques": [
+        "T1078",
+        "T1021.002",
+        "T1569.002",
+        "T1547"
+      ],
+      "missing_techniques": [],
+      "extra_techniques": []
+    },
+    {
+      "scenario_id": "ransomware-email-to-impact",
+      "cir_schema_valid": true,
+      "attack_precision": 100.0,
+      "attack_recall": 100.0,
+      "attack_f1": 100.0,
+      "tactic_recall": 100.0,
+      "graph_ordering_accuracy": 100.0,
+      "expected_techniques": [
+        "T1566.001",
+        "T1059.001",
+        "T1547",
+        "T1003",
+        "T1021.002",
+        "T1486"
+      ],
+      "predicted_techniques": [
+        "T1566.001",
+        "T1059.001",
+        "T1547",
+        "T1003",
+        "T1021.002",
+        "T1486"
+      ],
+      "missing_techniques": [],
+      "extra_techniques": []
+    }
+  ]
+}
