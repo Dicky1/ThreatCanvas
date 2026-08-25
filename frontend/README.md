@@ -1,32 +1,48 @@
-# React + TypeScript + Vite
+# ThreatCanvas Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React and TypeScript interface for creating attack scenarios, inspecting CIR
+graphs, reviewing coverage and threat assessments, and comparing attack
+simulations.
 
-Currently, two official plugins are available:
+## Requirements
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- A current Node.js LTS release
+- The ThreatCanvas backend running at `http://127.0.0.1:8000`
 
-## React Compiler
+## Local setup
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Run these commands from `frontend/`:
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm ci
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+The development server runs at `http://localhost:5173`. Vite proxies relative
+`/api` requests to the backend. Some existing clients use the backend's
+`http://localhost:8000` URL directly, so both services must be available during
+local development.
+
+## Application structure
+
+- `src/pages/` contains the routed dashboard, history, prompt library, login,
+  and settings screens.
+- `src/components/` contains graph, CIR, coverage, assessment, simulation, and
+  layout views.
+- `src/store/` contains Zustand stores for authentication, notifications, and
+  threat-scenario state.
+- `src/assets/` and `public/` contain static assets.
+
+Routes other than `/login` are protected by the authentication route wrapper.
+
+## Available commands
+
+```bash
+npm run dev      # start the Vite development server
+npm run build    # type-check and create a production build
+npm run lint     # run Oxlint
+npm run preview  # preview the production build locally
+```
+
+Vitest and Testing Library are installed, but the current package scripts do
+not define a test command.

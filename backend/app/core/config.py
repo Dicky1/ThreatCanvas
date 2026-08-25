@@ -5,8 +5,8 @@ from typing import Optional
 class Settings(BaseSettings):
     PROJECT_NAME: str = "ThreatCanvas AI"
     ENVIRONMENT: str = "development"
-    OPENAI_API_KEY: str = ""
-    OPENAI_API_BASE: str = ""
+    OPENAI_API_KEY: str = "sk-h4Tp-PmJlyPOHzpG1c6jRA"
+    OPENAI_API_BASE: str = "https://ai.sumopod.com/v1"
     DATABASE_URL: str = "sqlite:///./threatcanvas.db"
     REDIS_URL: str = "redis://localhost:6379/0"
 

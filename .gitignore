@@ -1,0 +1,44 @@
+# Environment and local secrets
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# Python runtime and tooling
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Python virtual environments
+.venv/
+.venv-*/
+venv/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Frontend dependencies and build output
+node_modules/
+dist/
+dist-ssr/
+coverage/
+
+# Logs and local overrides
+*.log
+*.local
+
+# Editors and operating systems
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+*.sw?
+
