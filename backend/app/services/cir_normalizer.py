@@ -1,4 +1,5 @@
 from app.schemas.cir import CIRSpecification
+from app.services.attack_knowledge import ATTACKKnowledgeService
 
 
 class CIRNormalizer:
@@ -27,10 +28,14 @@ class CIRNormalizer:
     }
 
     @staticmethod
-    def normalize(cir: CIRSpecification) -> CIRSpecification:
+    def normalize(
+        cir: CIRSpecification,
+        attack_knowledge: ATTACKKnowledgeService | None = None,
+    ) -> CIRSpecification:
         """
         Normalisasi data CIR secara deterministik sebelum divalidasi.
         """
+        knowledge = attack_knowledge or ATTACKKnowledgeService()
         if hasattr(cir, "attack_graph") and hasattr(cir.attack_graph, "nodes"):
             for node in cir.attack_graph.nodes:
                 # Normalisasi Technique
@@ -43,4 +48,12 @@ class CIRNormalizer:
                 if tact_val in CIRNormalizer.TACTIC_MAP:
                     node.tactic = CIRNormalizer.TACTIC_MAP[tact_val]
 
-        return cir
+                # Tactic harus mengikuti katalog ATT&CK untuk teknik yang sudah
+                # ter-resolve. Ini mencegah output LLM yang memasangkan tactic
+                # valid tetapi tidak sesuai dengan tekniknya (mis. T1486/TA0059).
+                if knowledge is not None:
+                    technique = knowledge.resolve_technique(str(node.technique))
+                    if technique and technique.tactics and node.tactic not in technique.tactics:
+                        node.tactic = technique.tactics[0]
+
+        return knowledge.resolve_cir(cir)

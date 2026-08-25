@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Save, Key, Cpu, Code, Palette, Shield } from 'lucide-react';
+import { Save, Key, Palette, Shield } from 'lucide-react';
 
 export default function Settings() {
   // State untuk menyimpan nilai input pengaturan
   const [config, setConfig] = useState({
-    apiKey: 'sk-threatcanvas-xxxx-xxxx',
     llmModel: 'gpt-4-turbo',
     defaultArtifact: 'sigma',
     mitreVersion: 'v14.1',
@@ -12,6 +11,7 @@ export default function Settings() {
   });
 
   const [isSaving, setIsSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -20,11 +20,9 @@ export default function Settings() {
 
   const handleSave = () => {
     setIsSaving(true);
-    // Simulasi proses menyimpan ke backend atau localStorage
-    setTimeout(() => {
-      setIsSaving(false);
-      alert('Pengaturan berhasil disimpan!');
-    }, 800);
+    localStorage.setItem('tc_preferences', JSON.stringify(config));
+    setIsSaving(false);
+    setSaved(true);
   };
 
   return (
@@ -41,7 +39,7 @@ export default function Settings() {
           className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
-          {isSaving ? 'Menyimpan...' : 'Simpan Perubahan'}
+          {isSaving ? 'Menyimpan...' : saved ? 'Tersimpan lokal' : 'Simpan Perubahan'}
         </button>
       </div>
 
@@ -57,15 +55,15 @@ export default function Settings() {
           <div className="grid grid-cols-1 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">LLM API Key</label>
-              <input 
-                type="password" 
-                name="apiKey"
-                value={config.apiKey}
-                onChange={handleChange}
+              <input
+                type="text"
+                value="Managed by backend environment"
+                readOnly
+                aria-label="API key management status"
                 className="w-full bg-gray-900 border border-gray-700 rounded-lg p-2.5 text-gray-200 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 placeholder="Masukkan API Key Anda..."
               />
-              <p className="text-xs text-gray-500 mt-1">Kunci ini disimpan secara lokal dan digunakan untuk memproses natural language menjadi attack graph.</p>
+              <p className="text-xs text-gray-500 mt-1">No API key is displayed or stored in the browser. Configure provider credentials through the backend environment.</p>
             </div>
             
             <div>

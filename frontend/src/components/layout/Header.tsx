@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Bell, LogOut, CheckCircle2, XCircle, Info } from 'lucide-react';
+import { User, Bell, LogOut, CheckCircle2, XCircle, Info, Menu } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useNotificationStore, formatRelativeTime } from '../../store/useNotificationStore';
+import { useThreatStore } from '../../store/useThreatStore';
+import { api } from '../../api/client';
 
 const TYPE_ICON = {
   success: CheckCircle2,
@@ -11,7 +13,7 @@ const TYPE_ICON = {
 } as const;
 
 const TYPE_COLOR = {
-  success: 'text-success',
+  success: 'text-accent',
   error: 'text-danger',
   info: 'text-primary',
 } as const;
@@ -19,11 +21,13 @@ const TYPE_COLOR = {
 /**
  * Komponen Header (Topbar) yang menampilkan status pengguna dan notifikasi.
  */
-export default function Header() {
+export default function Header({ onMenuClick }: { onMenuClick?: () => void }) {
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const { user, logout } = useAuthStore();
+  const { scenarioId, attackVersion } = useThreatStore();
+  const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
   const { notifications, markAsRead, markAllAsRead } = useNotificationStore();
   const navigate = useNavigate();
 
@@ -45,6 +49,10 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    api.health().then(() => setApiStatus('online')).catch(() => setApiStatus('offline'));
+  }, []);
+
   function handleLogout() {
     logout();
     navigate('/login', { replace: true });
@@ -54,12 +62,22 @@ export default function Header() {
   const displayRole = user?.role || 'Lead Architect';
 
   return (
-    <header className="h-16 bg-surface/80 backdrop-blur-md border-b border-gray-800 flex items-center justify-between px-8 sticky top-0 z-10">
-      <div className="flex items-center">
-        <h1 className="text-lg font-semibold text-gray-200">Cyber Engineering Workspace</h1>
+    <header className="h-16 bg-surface/80 backdrop-blur-md border-b border-gray-800 flex items-center justify-between px-4 sm:px-6 lg:px-8 sticky top-0 z-10">
+      <div className="flex items-center gap-3 min-w-0">
+        <button className="md:hidden text-gray-400 hover:text-white" aria-label="Open navigation" onClick={onMenuClick}><Menu size={20} /></button>
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-[0.18em] text-gray-600">ThreatCanvas v2</p>
+          <h1 className="text-base font-semibold text-gray-200 truncate">Cyber Engineering Workspace</h1>
+        </div>
+        {scenarioId && <span className="hidden lg:inline-flex text-xs text-gray-500 border border-gray-800 rounded px-2 py-1 font-mono">Scenario {scenarioId.slice(0, 8)}</span>}
       </div>
 
-      <div className="flex items-center space-x-6">
+      <div className="flex items-center gap-4 lg:gap-6">
+        <div className="hidden lg:flex items-center gap-2 text-xs text-gray-500" title={apiStatus === 'online' ? 'Backend API online' : 'Backend API unavailable'}>
+          <span className={`h-2 w-2 rounded-full ${apiStatus === 'online' ? 'bg-accent' : apiStatus === 'offline' ? 'bg-danger' : 'bg-yellow-500'}`} />
+          API {apiStatus === 'online' ? 'Online' : apiStatus === 'offline' ? 'Offline' : 'Checking'}
+          {attackVersion && <span>ATT&CK {attackVersion}</span>}
+        </div>
         {/* Notifikasi -- diisi otomatis dari aktivitas nyata di aplikasi */}
         <div className="relative" ref={notifRef}>
           <button
@@ -73,7 +91,7 @@ export default function Header() {
           </button>
 
           {isNotifOpen && (
-            <div className="absolute right-0 mt-3 w-96 bg-surface border border-gray-800 rounded-lg shadow-xl overflow-hidden">
+            <div className="absolute right-0 mt-3 w-[min(24rem,calc(100vw-2rem))] bg-surface border border-gray-800 rounded-lg shadow-xl overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
                 <span className="text-sm font-semibold text-gray-200">Notifikasi</span>
                 {unreadCount > 0 && (
@@ -138,11 +156,11 @@ export default function Header() {
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center border border-primary/50">
               <User className="w-4 h-4 text-primary" />
             </div>
-            <span className="text-sm font-medium text-gray-300">{displayName}</span>
+            <span className="hidden text-sm font-medium text-gray-300 sm:inline">{displayName}</span>
           </button>
 
           {isProfileOpen && (
-            <div className="absolute right-0 mt-3 w-64 bg-surface border border-gray-800 rounded-lg shadow-xl p-4 space-y-3">
+            <div className="absolute right-0 mt-3 w-64 max-w-[calc(100vw-2rem)] bg-surface border border-gray-800 rounded-lg shadow-xl p-4 space-y-3">
               <div>
                 <p className="text-sm font-medium text-gray-200">{displayName}</p>
                 <p className="text-xs text-gray-500">{displayRole}</p>

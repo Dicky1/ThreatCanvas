@@ -9,6 +9,8 @@ from app.schemas.cir import CIRSpecification
 from app.services.attack_simulation_engine import AttackSimulationEngine
 from app.services.defense_optimization_engine import DefenseOptimizationEngine
 from app.services.threat_reasoning_engine import ThreatReasoningEngine
+from app.services.d3fend_mapping import D3FENDMappingService
+from app.services.budget_optimizer import BudgetOptimizer
 
 # Inisialisasi router FastAPI
 router = APIRouter()
@@ -16,7 +18,7 @@ router = APIRouter()
 
 def get_optimization_engine() -> DefenseOptimizationEngine:
     threat_engine = ThreatReasoningEngine()
-    return DefenseOptimizationEngine(threat_engine)
+    return DefenseOptimizationEngine(threat_engine, D3FENDMappingService())
 
 
 @router.post("/{scenario_id}", response_model=SimulationResult)
@@ -80,7 +82,8 @@ async def run_attack_simulation(
         optimized_controls = opt_engine.generate_optimization(
             original_nodes=original_nodes,
             simulated_nodes=simulated_nodes,
-            total_risk_score=total_base_score
+            total_risk_score=total_base_score,
+            attack_paths=[sim_result.metrics_before.critical_path],
         )
 
         # 6. Pastikan format struktur data aman untuk Pydantic
@@ -107,17 +110,23 @@ async def run_attack_simulation(
                     "relationship": getattr(e, "relationship", "leads_to")
                 })
 
-        normalized_controls = []
-        if isinstance(optimized_controls, list):
-            for ctrl in optimized_controls:
-                if isinstance(ctrl, dict):
-                    normalized_controls.append(ctrl.get("control_name", str(ctrl)))
-                else:
-                    normalized_controls.append(str(ctrl))
-
         sim_result.removed_nodes = formatted_removed_nodes
         sim_result.removed_edges = formatted_removed_edges
-        sim_result.optimized_controls = normalized_controls
+        sim_result.optimized_controls = optimized_controls
+        if request.security_budget is not None:
+            node_techniques = {
+                str(getattr(node, "step_id", "")): str(getattr(node, "technique", ""))
+                for node in original_nodes
+            }
+            sim_result.budget_optimization = BudgetOptimizer().optimize(
+                request.available_controls,
+                request.security_budget,
+                algorithm="exact" if request.scoring_mode == "rw_apds" else "greedy",
+                baseline_risk=sim_result.rw_apds.baseline_risk,
+                attack_paths=[sim_result.metrics_before.critical_path],
+                critical_paths=[sim_result.metrics_before.critical_path],
+                node_techniques=node_techniques,
+            )
 
         return sim_result
 

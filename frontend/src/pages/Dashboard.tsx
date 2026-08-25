@@ -15,6 +15,7 @@ export default function Dashboard() {
     processScenario,
     isProcessing,
     cirData,
+    cirSpec,
     scenarioId,
     error,
     artifacts,
@@ -85,7 +86,7 @@ export default function Dashboard() {
           Generate Artifacts
         </button>
 
-        {error && (
+        {error && !cirData && (
           <p className="mt-3 text-red-400 flex items-center">
             <ShieldAlert size={16} className="mr-2" />
             {error}
@@ -178,10 +179,11 @@ export default function Dashboard() {
 
           {/* ================= GRAPH ================= */}
           {activeTab === "graph" && (
-            <div className="h-[700px]">
+            <div className="min-h-[700px]">
               {cirData ? (
                 <ThreatGraph 
-                  data={(cirData as any).cir || cirData} 
+                  data={(cirData as any).cir || cirData}
+                  specification={cirSpec ?? undefined}
                   scenarioId={scenarioId ?? undefined} 
                 />
               ) : (

@@ -1,23 +1,12 @@
 import { create } from 'zustand';
 import { useNotificationStore } from './useNotificationStore';
+import { api } from '../api/client';
+import type { CIRGraph, CIRSpecification, CoverageReport as ApiCoverageReport } from '../types/api';
+export type { CIRGraph, CIRNode } from '../types/api';
 
 /**
  * Interface untuk struktur CIR (Cyber Intermediate Representation)
  */
-export interface CIRNode {
-  step_id: string;
-  tactic: string;
-  technique: string;
-  actor: string;
-  target: string;
-  action_type: string;
-}
-
-export interface CIRGraph {
-  nodes: CIRNode[];
-  edges: { from: string; to: string; relationship: string }[];
-}
-
 /**
  * Interface untuk hasil validasi dari Backend
  */
@@ -49,7 +38,9 @@ interface ThreatState {
   scenarioInput: string;
   isProcessing: boolean;
   cirData: CIRGraph | null;
+  cirSpec: CIRSpecification | null;
   scenarioId: string | null;
+  attackVersion: string | null;
   artifacts: { [key: string]: string };
   error: string | null;
   validation: ValidationResult | null;
@@ -71,7 +62,9 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
   scenarioInput: '',
   isProcessing: false,
   cirData: null,
+  cirSpec: null,
   scenarioId: null,
+  attackVersion: null,
   artifacts: {},
   error: null,
   validation: null,
@@ -87,6 +80,7 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
       isProcessing: true,
       error: null,
       cirData: null,
+      cirSpec: null,
       scenarioId: null,
       artifacts: {},
       validation: null,
@@ -94,37 +88,13 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
     });
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/parse', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenario: scenarioInput }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (response.status === 400 && data.detail?.validation) {
-          set({
-            isProcessing: false,
-            validation: data.detail.validation,
-            error: 'Validasi CIR gagal',
-          });
-
-          useNotificationStore.getState().addNotification({
-            title: 'Validasi CIR gagal',
-            message: `Skenario "${truncate(scenarioInput)}" tidak lolos validasi graph.`,
-            type: 'error',
-          });
-        } else {
-          throw new Error(data.detail || 'Gagal terhubung ke backend');
-        }
-        return;
-      }
-
+      const data = await api.parse(scenarioInput);
       set({
         cirData: data.cir.attack_graph,
+        cirSpec: data.cir,
         scenarioId: data.id,
-        validation: data.validation,
+        attackVersion: data.cir.attack_version || null,
+        validation: data.validation as unknown as ValidationResult,
         isProcessing: false,
       });
 
@@ -150,14 +120,12 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
 
   fetchArtifacts: async (scenarioId: string, type: 'sigma' | 'kql' | 'spl') => {
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/compile/${type}/${scenarioId}`);
-      if (!response.ok) throw new Error(`Gagal mengambil ${type.toUpperCase()}`);
-
-      const data = await response.json();
-      const content = data.content || data.query;
+      const data = await api.artifact(scenarioId, type);
+      const content = data.content;
 
       set((state) => ({
         artifacts: { ...state.artifacts, [type]: content },
+        error: null,
       }));
 
       useNotificationStore.getState().addNotification({
@@ -179,10 +147,7 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
 
   fetchCoverage: async (scenarioId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/coverage/${scenarioId}`);
-      if (!response.ok) throw new Error('Gagal memuat analisis coverage');
-
-      const data: CoverageReport = await response.json();
+      const data: ApiCoverageReport = await api.coverage(scenarioId);
       set({ coverageData: data });
 
       useNotificationStore.getState().addNotification({
@@ -210,7 +175,9 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
     set({
       scenarioInput: '',
       cirData: null,
+      cirSpec: null,
       scenarioId: null,
+      attackVersion: null,
       artifacts: {},
       error: null,
       validation: null,

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search, ExternalLink, Trash2, Calendar, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'; // Tambahkan import ini
+import { api } from '../api/client';
 
 interface Scenario {
   id: string;
@@ -18,17 +19,9 @@ export default function History() {
   const navigate = useNavigate(); // Inisialisasi navigasi
 
   useEffect(() => {
-    fetch('http://localhost:8000/api/v1/scenarios')
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP Error: ${res.status}`);
-        return res.json();
-      })
+    api.scenarios()
       .then(data => {
-        if (Array.isArray(data)) {
-          setHistory(data);
-        } else if (data && Array.isArray(data.data)) {
-          setHistory(data.data);
-        }
+        setHistory(data);
         setIsLoading(false);
       })
       .catch(err => {
@@ -43,26 +36,18 @@ export default function History() {
     if (!window.confirm("Apakah Anda yakin ingin menghapus skenario ini?")) return;
 
     try {
-      const response = await fetch(`http://localhost:8000/api/v1/scenarios/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        // Hapus data dari state React agar langsung hilang dari layar tanpa perlu refresh
-        setHistory(prevHistory => prevHistory.filter(item => item.id !== id));
-      } else {
-        alert("Gagal menghapus skenario di database.");
-      }
+      await api.deleteScenario(id);
+      // Hapus data dari state React agar langsung hilang dari layar tanpa perlu refresh
+      setHistory(prevHistory => prevHistory.filter(item => item.id !== id));
     } catch (error) {
-      console.error("Error deleting scenario:", error);
-      alert("Terjadi kesalahan jaringan saat menghapus.");
+      alert(error instanceof Error ? error.message : 'Gagal menghapus skenario di database.');
     }
   };
 
   // --- FUNGSI LOAD ---
   const handleLoad = (item: Scenario) => {
     // Berpindah ke halaman Dashboard ("/") sambil membawa data skenario (item)
-    navigate('/', { state: { loadedScenario: item } });
+    navigate('/threat-modeling', { state: { loadedScenario: item } });
   };
 
   const filteredHistory = history.filter(item => 

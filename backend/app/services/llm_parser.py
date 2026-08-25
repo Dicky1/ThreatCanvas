@@ -115,6 +115,22 @@ Otherwise null.
 
 ------------------------------------------------
 
+CIR v2 Entities
+
+When the narrative provides enough information, populate the optional top-level
+entities array with typed entities using these entity_type values:
+threat_actor, technique, tactic, asset, identity, vulnerability, observable,
+detection_rule, defensive_control, trust_zone, evidence.
+
+Use entity_refs on nodes to link a node to entity IDs. Keep the legacy node
+fields populated as well. Use uppercase relationships when applicable:
+USES, TARGETS, REQUIRES, EXPLOITS, PRODUCES, DETECTED_BY, COUNTERED_BY,
+CONNECTED_TO.
+
+Confidence is a number from 0 to 1. Provenance and timestamps are optional.
+
+------------------------------------------------
+
 Target
 
 Always infer the attacked asset.

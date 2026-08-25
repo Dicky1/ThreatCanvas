@@ -1,0 +1,6 @@
+import { BookOpen, Shield } from 'lucide-react';
+import { PageHeader, Panel } from '../components/common/Primitives';
+
+export default function About() {
+  return <div className="page-stack"><PageHeader eyebrow="Research / Methodology" title="About ThreatCanvas" description="An explainable workspace for translating threat narratives into analyzable detection and defense decisions." action={<span className="page-icon"><BookOpen size={18} /></span>} /><div className="content-grid two-column"><Panel title="Research scope"><p className="prose">ThreatCanvas combines LLM-assisted parsing with deterministic CIR validation, ATT&CK resolution, graph analytics, detection validation, simulation, and collective intelligence correlation.</p></Panel><Panel title="Data integrity"><p className="prose">Security metrics are rendered only when returned by the backend. Imported intelligence, evidence, and recommendations retain provenance and confidence so analysts can separate inferred results from verified framework data.</p></Panel></div><Panel title="Workflow"><div className="workflow"><span><Shield size={16} /> Narrative</span><i>→</i><span>CIR + ATT&CK</span><i>→</i><span>Detection</span><i>→</i><span>Simulation</span><i>→</i><span>Defense</span></div></Panel></div>;
+}

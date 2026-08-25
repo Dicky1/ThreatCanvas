@@ -1,13 +1,14 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
   ShieldAlert, ShieldCheck, AlertTriangle, Activity, 
-  ArrowDown, ArrowUp, Minus, CheckCircle, XCircle, Info, Layers, Cpu 
+  ArrowDown, ArrowUp, Minus, CheckCircle, XCircle, Info
 } from 'lucide-react';
+import { api } from '../api/client';
 
 interface RemovedNode {
   step_id: string;
   technique: string;
-  tactic: string;
+  tactic?: string;
   reason: string;
 }
 
@@ -49,8 +50,23 @@ interface SimulationResult {
   comparison: SimulationComparison;
   risk_reduction: number;
   attack_path_disruption_score: number;
-  optimized_controls: string[];
+  optimized_controls: Array<{
+    control_name: string;
+    defensive_technique?: string;
+    rationale?: string;
+    confidence?: number;
+    affected_attack_nodes?: string[];
+    affected_attack_paths?: string[][];
+  }>;
   simulation_summary: string;
+  rw_apds?: {
+    baseline_risk: number;
+    residual_risk: number;
+    weighted_node_disruption: number;
+    score: number;
+    attack_paths_eliminated: string[][];
+    critical_paths_eliminated: string[][];
+  };
   warning?: string;
 }
 
@@ -60,6 +76,8 @@ interface AttackSimulationViewProps {
 
 export default function AttackSimulationView({ scenarioId }: AttackSimulationViewProps) {
   const [blockedInput, setBlockedInput] = useState<string>("T1059.001, T1003.001");
+  const [scoringMode, setScoringMode] = useState<'apds' | 'rw_apds'>('apds');
+  const [securityBudget, setSecurityBudget] = useState('');
   const [simulationData, setSimulationData] = useState<SimulationResult | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,14 +92,7 @@ export default function AttackSimulationView({ scenarioId }: AttackSimulationVie
     try {
       const techniques = blockedInput.split(',').map(t => t.trim()).filter(Boolean);
       
-      const response = await fetch(`http://localhost:8000/api/v1/${scenarioId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ blocked_techniques: techniques })
-      });
-
-      if (!response.ok) throw new Error("Gagal menjalankan simulasi dari backend.");
-      const data: SimulationResult = await response.json();
+      const data = await api.simulation(scenarioId, techniques, { scoring_mode: scoringMode, ...(securityBudget ? { security_budget: Number(securityBudget), available_controls: [] } : {}) }) as unknown as SimulationResult;
       setSimulationData(data);
       if (data.remaining_nodes.length > 0) {
         setSelectedNodeId(data.remaining_nodes[0]);
@@ -118,7 +129,7 @@ export default function AttackSimulationView({ scenarioId }: AttackSimulationVie
           </h1>
           <p className="text-slate-400 text-xs mt-1">Simulasikan pemblokiran teknik mitigasi dan analisis dampaknya pada attack graph secara deterministik.</p>
         </div>
-        <div className="flex items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <input 
             type="text" 
             value={blockedInput}
@@ -126,6 +137,11 @@ export default function AttackSimulationView({ scenarioId }: AttackSimulationVie
             placeholder="T1059.001, T1003.001"
             className="bg-slate-950 border border-slate-700 px-4 py-2 rounded-lg text-xs focus:outline-none focus:border-cyan-500 flex-1 md:w-64 font-mono"
           />
+          <select aria-label="Simulation scoring mode" value={scoringMode} onChange={(event) => setScoringMode(event.target.value as 'apds' | 'rw_apds')} className="bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg text-xs text-slate-200">
+            <option value="apds">APDS</option>
+            <option value="rw_apds">RW-APDS</option>
+          </select>
+          <input type="number" min="0" value={securityBudget} onChange={(event) => setSecurityBudget(event.target.value)} placeholder="Budget (optional)" aria-label="Optional security budget" className="bg-slate-950 border border-slate-700 px-3 py-2 rounded-lg text-xs text-slate-200 w-32" />
           <button 
             onClick={runSimulation}
             disabled={loading}
@@ -214,6 +230,15 @@ export default function AttackSimulationView({ scenarioId }: AttackSimulationVie
               reduction={simulationData.comparison.blast_radius_reduction}
             />
           </div>
+
+          {simulationData.rw_apds && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <MetricCard title="RW-APDS" before={`${simulationData.rw_apds.score}%`} after={`${simulationData.rw_apds.score}%`} />
+              <MetricCard title="Baseline weighted risk" before={simulationData.rw_apds.baseline_risk} after={simulationData.rw_apds.residual_risk} reduction={simulationData.rw_apds.baseline_risk - simulationData.rw_apds.residual_risk} />
+              <MetricCard title="Weighted disruption" before={`${simulationData.rw_apds.weighted_node_disruption}%`} after={`${simulationData.rw_apds.weighted_node_disruption}%`} />
+              <MetricCard title="Paths eliminated" before={simulationData.rw_apds.attack_paths_eliminated.length} after={simulationData.rw_apds.critical_paths_eliminated.length} />
+            </div>
+          )}
 
           {/* Sub Navigation untuk Detail View */}
           <div className="flex gap-4 border-b border-slate-800 pb-2">
@@ -388,9 +413,14 @@ export default function AttackSimulationView({ scenarioId }: AttackSimulationVie
                 <div className="space-y-2">
                   {simulationData.optimized_controls.map((ctrl, idx) => (
                     <div key={idx} className="bg-slate-950 border border-slate-800 p-3 rounded-lg flex items-center justify-between text-xs">
-                      <span className="font-medium text-emerald-400 flex items-center gap-2">
-                        <CheckCircle size={14} /> {ctrl}
+                          <span className="font-medium text-emerald-400 flex items-center gap-2">
+                          <CheckCircle size={14} /> {ctrl.control_name}
                       </span>
+                        <div className="text-right text-[10px] text-slate-500">
+                          {ctrl.defensive_technique && <div>{ctrl.defensive_technique}</div>}
+                          {ctrl.confidence !== undefined && <div>Confidence {Math.round(ctrl.confidence * 100)}%</div>}
+                          {ctrl.affected_attack_nodes && <div>{ctrl.affected_attack_nodes.length} affected node(s)</div>}
+                        </div>
                     </div>
                   ))}
                 </div>

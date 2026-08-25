@@ -33,6 +33,9 @@ The platform combines LLM-assisted parsing with deterministic graph analytics an
 ### Dashboard — Threat Narrative Processor
 ![Dashboard](docs/images/dashboard.png)
 
+### Threat Modeling Workspace
+![Threat Modeling](docs/images/threat-modeling.png)
+
 ### Attack Graph Visualization
 ![Attack Graph](docs/images/attack-graph.png)
 
@@ -47,6 +50,12 @@ The platform combines LLM-assisted parsing with deterministic graph analytics an
 
 ### Simulation Comparison
 ![Simulation Comparison](docs/images/simulation-comparison.png)
+
+### Research Metrics & Experiment Telemetry
+![Research Metrics](docs/images/research-metrics-telemetry.png)
+
+### Collective Defense
+![Collective Defense](docs/images/collective-defense.png)
 
 ### Defense Optimization
 ![Defense Optimization](docs/images/defense-optimization.png)
@@ -122,6 +131,12 @@ ThreatCanvas introduces several engineering contributions at the intersection of
 - **🔔 Real-Time Activity Notifications** — Every meaningful action (parsing complete, artifact generated, coverage analyzed, simulation completed) surfaces as a live, event-driven notification in the UI.
 - **🔐 JWT Authentication** — Secure token-based auth with bcrypt password hashing, protecting the workspace and ready to extend to multi-user/role-based access.
 - **🕘 Scenario History** — Every processed scenario and its generated CIR graph is persisted and retrievable for later review or re-compilation.
+- **🧬 CIR v2 Knowledge Graph** — Supports actors, techniques, tactics, assets, identities, vulnerabilities, observables, detection rules, controls, trust zones, evidence, provenance, confidence, timestamps, and typed relationships.
+- **🔎 Graph Workspace** — Search/filter graph relationships, switch to a knowledge-graph view, inspect provenance, and review critical paths and blast radius.
+- **🛰️ STIX 2.1 Interoperability** — Import validated STIX bundles and export scenario intelligence as STIX.
+- **🤝 Collective Defense** — Correlate sanitized shared techniques, indicators, attack paths, and defensive recommendations.
+- **📐 RW-APDS & Budget Optimization** — Compare APDS with risk-weighted APDS and evaluate controls against an optional security budget.
+- **🧪 Research Telemetry** — Records parse duration, run status, graph size, and validation metadata for reproducible experiments.
 
 ---
 
@@ -262,36 +277,34 @@ systems.
 ThreatCanvas/
 ├── backend/
 │   ├── app/
-│   │   ├── api/
-│   │   │   ├── deps.py                # Auth dependency injection
-│   │   │   └── endpoints/              # parser, compilers, coverage,
-│   │   │                                # graph_analysis, reasoning,
-│   │   │                                # simulation, auth
-│   │   ├── core/
-│   │   │   ├── config.py               # Environment-based settings
-│   │   │   ├── database.py             # SQLAlchemy engine/session
-│   │   │   └── security.py             # JWT + password hashing
-│   │   ├── models/                     # SQLAlchemy ORM entities
-│   │   ├── repositories/               # Data access layer
-│   │   ├── schemas/                    # Pydantic request/response models
-│   │   ├── services/                   # LLM parser, compilers, analyzers,
-│   │   │                                # simulation engine
-│   │   └── main.py                     # FastAPI app entrypoint
-│   └── tests/
-│
+│   │   ├── api/endpoints/              # parser, compilers, coverage, graph,
+│   │   │                                # reasoning, simulation, STIX, collective,
+│   │   │                                # research telemetry, benchmark, auth
+│   │   ├── core/                       # config, database, JWT security
+│   │   ├── data/                       # local detection fixtures and mappings
+│   │   ├── models/                     # ScenarioRecord, ExperimentMetric, users
+│   │   ├── repositories/               # scenario persistence and CIR loading
+│   │   ├── schemas/                    # CIR v2, detection, simulation, collective
+│   │   ├── services/                   # ATT&CK, CIR, evidence, STIX, D3FEND,
+│   │   │                                # compilers, coverage, simulation,
+│   │   │                                # RW-APDS, optimization, validation
+│   │   └── main.py                     # FastAPI application and route registration
+│   └── tests/                          # backend unit and integration tests
+├── docs/images/                        # current and legacy feature screenshots
 └── frontend/
-    └── src/
-        ├── components/
-        │   ├── layout/                 # Header, Sidebar, MainLayout
-        │   ├── ArtifactViewer.tsx
-        │   ├── ThreatGraph.tsx
-        │   ├── Coverage.tsx
-        │   ├── Simulation.tsx
-        │   └── RichCIRInspector.tsx
-        ├── pages/                      # Dashboard, History, PromptLibrary,
-        │                                # Settings, Login
-        ├── store/                      # Zustand stores (threat, auth, notifications)
-        └── App.tsx                     # Routing entrypoint
+    ├── src/
+    │   ├── api/                        # typed REST client
+    │   ├── components/                 # graph, CIR, coverage, simulation, layout,
+    │   │                                # shared primitives, inspectors
+    │   ├── pages/                      # Threat Modeling, Attack Graph, Knowledge
+    │   │                                # Graph, Detection, Simulation, Collective,
+    │   │                                # Intelligence, Benchmark, Research, history
+    │   ├── store/                      # threat, auth, and notification Zustand stores
+    │   ├── types/                      # shared API and CIR TypeScript types
+    │   ├── test/                       # Vitest setup and component tests
+    │   └── App.tsx                     # protected route and workspace routing
+    ├── vite.config.ts
+    └── vitest.config.ts
 ```
 
 ---
@@ -369,15 +382,22 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation (with 
 | `POST` | `/auth/register` | Register a new user |
 | `POST` | `/auth/login` | Authenticate and receive a JWT (OAuth2 form body) |
 | `POST` | `/parse` | Parse a natural language scenario into a CIR graph |
+| `GET` | `/scenarios` | List stored scenarios |
+| `GET` | `/scenarios/{scenario_id}/evidence` | Read scenario evidence and provenance |
 | `GET` | `/coverage/{scenario_id}` | Get MITRE ATT&CK coverage report |
 | `GET` | `/compile/{type}/{scenario_id}` | Compile detection artifact (`sigma` \| `kql` \| `spl`) |
 | `GET`/`POST` | `/graph-analysis/...` ⚠️ | Attack graph metrics (critical path, density, complexity) — verify exact route in `graph_analysis.py` |
 | `GET`/`POST` | `/reasoning/...` ⚠️ | Threat reasoning & recommendations — verify exact route in `reasoning.py` |
-| `POST` | `/simulation` ⚠️ | Run attack simulation and defense optimization — verify exact route/payload in `simulation.py`; adjust to match final FastAPI route if different |
+| `POST` | `/{scenario_id}` | Run APDS/RW-APDS simulation, optional security budget, and control optimization |
+| `GET` | `/research/metrics/{scenario_id}` | Read recorded experiment telemetry |
+| `POST` | `/stix/import` | Import a validated STIX 2.1 bundle |
+| `GET` | `/stix/export/{scenario_id}` | Export a scenario as STIX |
+| `POST` | `/collective/analyze` | Correlate a sanitized collective-defense package |
 
 **Not yet backend-backed** (currently frontend-only, for transparency):
 - **Notifications** — generated client-side in `useNotificationStore`, triggered by frontend actions. No `/notifications` endpoint exists yet.
 - **Prompt Library** — currently a hardcoded `PROMPT_DATABASE` array in the frontend. No `/prompt-library` endpoint exists yet; a natural next step is moving this to a backend-managed table.
+- **Telemetry scope** — current research telemetry records parse runs and graph/validation metadata. Token usage, provider cost, and historical detection F1 require provider-specific instrumentation and are not inferred.
 
 ---
 
@@ -392,6 +412,10 @@ All endpoints are prefixed with `/api/v1`. Full interactive documentation (with 
 - ✅ Attack Graph Analysis
 - ✅ Threat Reasoning Engine
 - ✅ Attack Simulation & Defense Optimization
+- ✅ CIR v2 schema and typed knowledge-graph relationships
+- ✅ STIX 2.1 import/export
+- ✅ Collective-defense correlation
+- ✅ Research parse telemetry
 
 ### ⏭️ Next Roadmap
 

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { api } from '../api/client';
 
 /**
  * Struktur data user yang dikembalikan backend (tanpa password)
@@ -57,30 +58,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isAuthenticating: true, error: null });
 
     try {
-      // Backend pakai OAuth2PasswordRequestForm -> harus form-urlencoded,
-      // bukan JSON, beda dari endpoint lain di aplikasi ini.
-      const body = new URLSearchParams();
-      body.append('username', username);
-      body.append('password', password);
-
-      const response = await fetch('http://localhost:8000/api/v1/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Login gagal. Periksa username/password.');
-      }
+      const data = await api.login(username, password);
 
       localStorage.setItem(TOKEN_KEY, data.access_token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
 
       set({
         token: data.access_token,
-        user: data.user,
+        user: data.user as AuthUser,
         isAuthenticating: false,
       });
 
@@ -98,17 +83,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ isAuthenticating: true, error: null });
 
     try {
-      const response = await fetch('http://localhost:8000/api/v1/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || 'Registrasi gagal.');
-      }
+      await api.register(payload);
 
       set({ isAuthenticating: false });
       return true;

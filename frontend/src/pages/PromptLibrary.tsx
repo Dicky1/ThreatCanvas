@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Search,
   BookOpen,
@@ -11,7 +11,6 @@ import {
   Globe,
   Package,
   Cpu,
-  Database,
   KeyRound,
   Network,
   Bug,
@@ -196,7 +195,7 @@ export default function PromptLibrary() {
   const handleLoad = (promptText: string) => {
     // Kita mengirim format data yang sama seperti halaman History ({ original_input: ... })
     // Sehingga kode di Dashboard.tsx yang kita buat sebelumnya bisa langsung membacanya tanpa diubah!
-    navigate('/', { state: { loadedScenario: { original_input: promptText } } });
+    navigate('/threat-modeling', { state: { loadedScenario: { original_input: promptText } } });
   };
 
   const handleCopy = (text: string) => {

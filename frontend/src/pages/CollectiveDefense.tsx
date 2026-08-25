@@ -1,0 +1,14 @@
+import { useState } from 'react';
+import { Send, Users } from 'lucide-react';
+import { api } from '../api/client';
+import type { CollectiveDefenseResult } from '../types/api';
+import { EmptyState, ErrorState, LoadingState, MetricCard, PageHeader, Panel, StatusBadge } from '../components/common/Primitives';
+
+export default function CollectiveDefense() {
+  const [payload, setPayload] = useState('');
+  const [result, setResult] = useState<CollectiveDefenseResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  async function analyze() { setLoading(true); setError(null); try { setResult(await api.collective(JSON.parse(payload))); } catch (reason) { setError(reason instanceof Error ? reason.message : 'Collective analysis failed.'); } finally { setLoading(false); } }
+  return <div className="page-stack"><PageHeader eyebrow="Collective / Correlation" title="Collective Defense" description="Shared, sanitized intelligence transformed into correlated defensive knowledge." action={<span className="page-icon"><Users size={18} /></span>} /><Panel title="Submit sanitized intelligence" description="The backend enforces TLP and package validation. Do not paste organization-sensitive data."><textarea className="json-input" value={payload} onChange={(event) => setPayload(event.target.value)} placeholder={'{"packages": [], "local_detected_techniques": []}'} aria-label="Sanitized threat intelligence package JSON" /><div className="action-row"><button className="button button-primary" disabled={loading || !payload.trim()} onClick={analyze}><Send size={16} /> Analyze package</button></div>{loading && <LoadingState label="Correlating shared intelligence" />}{error && <ErrorState message={error} />}</Panel>{result ? <><div className="metric-grid"><MetricCard label="Sources" value={new Set(result.shared_techniques.flatMap((item) => item.source_packages)).size} /><MetricCard label="Observed techniques" value={result.coverage.collective_techniques.length} /><MetricCard label="Local coverage" value={`${result.coverage.local_coverage}%`} /><MetricCard label="Collective coverage" value={`${result.coverage.collective_coverage}%`} tone="good" /></div><Panel title="Shared attack paths"><div className="data-list">{result.shared_attack_paths.length ? result.shared_attack_paths.map((path) => <div className="data-row" key={path.techniques.join('-')}><div><strong>{path.techniques.join(' → ')}</strong><small>{path.source_packages.length} source package(s)</small></div><StatusBadge tone="info">Confidence {Math.round(path.confidence * 100)}%</StatusBadge></div>) : <EmptyState title="No shared paths" description="No ordered attack path was returned by the backend." />}</div></Panel></> : <EmptyState title="No collective analysis yet" description="Provide a sanitized package payload to use the real collective-defense endpoint." />}</div>;
+}

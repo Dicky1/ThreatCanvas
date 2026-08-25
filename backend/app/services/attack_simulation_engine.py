@@ -10,6 +10,7 @@ from app.schemas.cir import CIRSpecification
 from app.services.graph_analysis_engine import GraphAnalysisEngine
 from app.services.threat_reasoning_engine import ThreatReasoningEngine
 from app.services.cir_validator import CIRValidator
+from app.services.rw_apds import RWAPDSCalculator
 
 logger = logging.getLogger(__name__)
 
@@ -270,6 +271,14 @@ class AttackSimulationEngine:
             sim_threat_reasoning, sim_graph_analysis, simulated_cir
         )
 
+        rw_apds = RWAPDSCalculator().score(
+            baseline_nodes=list(original_nodes),
+            residual_nodes=list(simulated_cir.attack_graph.nodes),
+            baseline_paths=self._get_paths(orig_graph_analysis),
+            residual_paths=self._get_paths(sim_graph_analysis),
+            critical_paths=[metrics_before.critical_path],
+        )
+
         # 7. Kalkulasi APDS & Chain Status
         orig_cp_len = len(metrics_before.critical_path)
         sim_cp_len = len(metrics_after.critical_path)
@@ -384,9 +393,17 @@ class AttackSimulationEngine:
             attack_path_disruption_score=max(0.0, min(100.0, apds)),
             optimized_controls=[],
             simulation_summary=summary_text,
+            rw_apds=rw_apds,
         )
 
         if warning_msg and hasattr(result, "warning"):
             setattr(result, "warning", warning_msg)
 
         return result
+
+    @staticmethod
+    def _get_paths(analysis: Any) -> list[list[str]]:
+        if analysis is None:
+            return []
+        paths = getattr(analysis, "attack_chains", [])
+        return [list(path) for path in paths if isinstance(path, list)]

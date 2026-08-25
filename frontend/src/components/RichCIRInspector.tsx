@@ -1,5 +1,3 @@
-import React from 'react';
-
 export default function RichCIRInspector({ nodeData }: { nodeData: any }) {
   if (!nodeData) {
     return (

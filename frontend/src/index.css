@@ -1,17 +1,23 @@
 @import "tailwindcss";
 
-/* Ini adalah pengganti tailwind.config.js di Tailwind v4 */
 @theme {
-  --color-background: #0a0a0a;
-  --color-surface: #171717;
-  --color-primary: #3b82f6;
-  --color-accent: #10b981;
-  --color-danger: #ef4444;
+  --color-background: #0b1016;
+  --color-surface: #111923;
+  --color-primary: #59a8d8;
+  --color-accent: #57c99a;
+  --color-danger: #ef7272;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  background-color: var(--color-background);
-  color: #f3f4f6; /* text-gray-100 */
+:root {
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  color: #e8edf2;
+  background: #0b1016;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; background: #0b1016; }
+button, input, textarea, select { font: inherit; }
+button { cursor: pointer; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #59a8d8; outline-offset: 2px; }

@@ -1,0 +1,15 @@
+import { useRef, useState } from 'react';
+import { Download, FileUp, Radar } from 'lucide-react';
+import { api } from '../api/client';
+import { EmptyState, ErrorState, PageHeader, Panel, StatusBadge } from '../components/common/Primitives';
+import { useThreatStore } from '../store/useThreatStore';
+
+export default function ThreatIntelligence() {
+  const scenarioId = useThreatStore((state) => state.scenarioId);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  async function importBundle(file: File) { setBusy(true); setMessage(null); try { const bundle = JSON.parse(await file.text()); const result = await api.importStix(bundle); setMessage(`Imported STIX package${typeof result === 'object' && result && 'id' in result ? ` as ${(result as { id: string }).id}` : ''}.`); } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to import STIX bundle.'); } finally { setBusy(false); } }
+  async function exportScenario() { if (!scenarioId) return; setBusy(true); try { const bundle = await api.exportStix(scenarioId); const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `threatcanvas-${scenarioId}.json`; link.click(); URL.revokeObjectURL(url); } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to export scenario.'); } finally { setBusy(false); } }
+  return <div className="page-stack"><PageHeader eyebrow="Intelligence / STIX 2.1" title="Threat Intelligence" description="Import and export supported STIX intelligence without hiding validation failures." action={<span className="page-icon"><Radar size={18} /></span>} /><Panel title="STIX exchange" description="Supported objects are validated by the backend before entering the CIR." ><div className="action-row"><input ref={inputRef} type="file" accept="application/json,.json" hidden onChange={(event) => event.target.files?.[0] && importBundle(event.target.files[0])} /><button className="button button-primary" disabled={busy} onClick={() => inputRef.current?.click()}><FileUp size={16} /> Import STIX bundle</button><button className="button button-secondary" disabled={busy || !scenarioId} onClick={exportScenario}><Download size={16} /> Export active scenario</button></div>{message && <div className="inline-message"><StatusBadge tone={message.startsWith('Unable') ? 'danger' : 'good'}>{message.startsWith('Unable') ? 'Error' : 'Accepted'}</StatusBadge><span>{message}</span></div>}{!scenarioId && <EmptyState title="No active scenario" description="Export becomes available after an analysis is saved by the backend." />}</Panel><Panel title="Trust boundary"><ErrorState message="Threat actor, malware, indicators, TLP, and provenance details are available from imported STIX packages. A dedicated intelligence catalog endpoint is not currently exposed by the backend." /></Panel></div>;
+}

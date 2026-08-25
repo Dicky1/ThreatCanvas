@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { api } from '../api/client';
 
 interface RiskNode { 
   node_id: string; 
@@ -44,9 +45,7 @@ const ThreatAssessment: React.FC<{ scenarioId: string }> = ({ scenarioId }) => {
     const fetchReasoning = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`http://localhost:8000/api/v1/reasoning/${scenarioId}`);
-        if (!response.ok) throw new Error('Gagal mengambil data Threat Reasoning');
-        setData(await response.json());
+        setData(await api.reasoning(scenarioId) as unknown as ThreatReasoning);
       } catch (err: any) {
         setError(err.message);
       } finally {

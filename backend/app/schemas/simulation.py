@@ -1,5 +1,6 @@
+from typing import Any, Dict, List, Literal, Optional
+
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
 
 
 class SimulationRequest(BaseModel):
@@ -8,6 +9,17 @@ class SimulationRequest(BaseModel):
         description="Daftar Technique ID MITRE ATT&CK (misal: T1059.001) yang disimulasikan untuk dicegah.",
         example=["T1059.001", "T1003.001"],
     )
+    scoring_mode: Literal["apds", "rw_apds"] = "apds"
+    security_budget: Optional[float] = Field(default=None, ge=0)
+    available_controls: List["BudgetControl"] = Field(default_factory=list)
+
+
+class BudgetControl(BaseModel):
+    control_id: str
+    control_name: str
+    implementation_cost: float = Field(..., ge=0)
+    affected_techniques: List[str] = Field(default_factory=list)
+    expected_risk_reduction: float = Field(..., ge=0)
 
 
 class OptimizedControl(BaseModel):
@@ -24,6 +36,12 @@ class OptimizedControl(BaseModel):
     affected_techniques: List[str] = Field(
         ..., description="Daftar Technique ID yang berhasil dimitigasi oleh kontrol ini"
     )
+    defensive_technique: Optional[str] = None
+    rationale: Optional[str] = None
+    affected_attack_nodes: List[str] = Field(default_factory=list)
+    affected_attack_paths: List[List[str]] = Field(default_factory=list)
+    source: Optional[str] = None
+    confidence: Optional[float] = Field(default=None, ge=0, le=1)
 
 class RemovedNode(BaseModel):
     step_id: str = Field(..., description="ID node yang dihapus")
@@ -93,6 +111,26 @@ class SimulationComparison(BaseModel):
     )
 
 
+class RWAPDSResult(BaseModel):
+    baseline_risk: float
+    residual_risk: float
+    attack_paths_eliminated: List[List[str]]
+    critical_paths_eliminated: List[List[str]]
+    weighted_node_disruption: float
+    score: float
+    weights: Dict[str, float]
+
+
+class BudgetOptimizationResult(BaseModel):
+    recommended_controls: List[BudgetControl]
+    total_cost: float
+    expected_risk_reduction: float
+    rw_apds_improvement: float
+    attack_paths_disrupted: List[List[str]]
+    residual_critical_paths: List[List[str]]
+    algorithm: Literal["greedy", "exact"]
+
+
 class SimulationResult(BaseModel):
     blocked_techniques: List[str] = Field(
         ..., description="Teknik yang digunakan sebagai input pemblokiran"
@@ -125,3 +163,5 @@ class SimulationResult(BaseModel):
         ...,
         description="Narasi deterministik yang dihasilkan oleh rule engine (bukan AI)",
     )
+    rw_apds: RWAPDSResult
+    budget_optimization: Optional[BudgetOptimizationResult] = None

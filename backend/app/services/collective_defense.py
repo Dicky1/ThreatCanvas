@@ -1,0 +1,133 @@
+from typing import Any
+
+from app.schemas.collective import (
+    CollectiveDefenseResult,
+    CoverageSummary,
+    SharedAttackPath,
+    SharedTechnique,
+    ThreatIntelligencePackage,
+)
+from app.services.evidence_provenance import EvidenceProvenanceEngine
+from app.services.threat_reasoning_engine import ThreatReasoningEngine
+
+
+class CollectiveDefenseEngine:
+    """Correlates sanitized intelligence without downgrading trusted observations."""
+
+    def __init__(self, threat_engine: ThreatReasoningEngine | None = None):
+        self.threat_engine = threat_engine or ThreatReasoningEngine()
+
+    def analyze(
+        self,
+        packages: list[ThreatIntelligencePackage],
+        local_detected_techniques: list[str] | None = None,
+    ) -> CollectiveDefenseResult:
+        self._validate_packages(packages)
+        observations: dict[str, dict[str, Any]] = {}
+        indicators: dict[str, dict[str, Any]] = {}
+        paths: dict[tuple[str, ...], dict[str, Any]] = {}
+
+        for package in packages:
+            techniques = [technique.upper() for technique in package.observed_techniques]
+            for technique_id in techniques:
+                observation = observations.setdefault(
+                    technique_id,
+                    {"confidence": 0.0, "packages": [], "provenance": [], "observed_at": []},
+                )
+                observation["confidence"] = max(
+                    observation["confidence"], package.source_confidence
+                )
+                observation["packages"].append(package.package_id)
+                if package.provenance:
+                    observation["provenance"].append(package.provenance)
+                if package.observed_at:
+                    observation["observed_at"].append(package.observed_at)
+
+            sanitized = self._sanitize_indicators(package.sanitized_indicators)
+            for indicator in sanitized:
+                key = self._indicator_key(indicator)
+                if key not in indicators:
+                    indicators[key] = indicator
+                else:
+                    indicators[key] = {
+                        **indicator,
+                        **indicators[key],
+                    }
+
+            path = tuple(techniques)
+            if path:
+                path_data = paths.setdefault(path, {"confidence": 0.0, "packages": []})
+                path_data["confidence"] = max(
+                    path_data["confidence"], package.source_confidence
+                )
+                path_data["packages"].append(package.package_id)
+
+        shared = [
+            SharedTechnique(
+                technique_id=technique_id,
+                confidence=data["confidence"],
+                source_packages=sorted(set(data["packages"])),
+                provenance=sorted(set(data["provenance"])),
+                observed_at=sorted(set(data["observed_at"])),
+            )
+            for technique_id, data in sorted(observations.items())
+        ]
+        shared_ids = {item.technique_id for item in shared}
+        local_ids = {technique.upper() for technique in local_detected_techniques or []}
+        denominator = len(shared_ids)
+        controls = {
+            technique: list(self.threat_engine.MITRE_CONTROLS.get(technique, []))
+            for technique in sorted(shared_ids)
+            if technique in self.threat_engine.MITRE_CONTROLS
+        }
+        return CollectiveDefenseResult(
+            shared_techniques=shared,
+            sanitized_indicators=list(indicators.values()),
+            shared_attack_paths=[
+                SharedAttackPath(
+                    techniques=list(path),
+                    confidence=data["confidence"],
+                    source_packages=sorted(set(data["packages"])),
+                )
+                for path, data in sorted(paths.items())
+            ],
+            coverage=CoverageSummary(
+                local_techniques=sorted(local_ids),
+                collective_techniques=sorted(shared_ids),
+                local_coverage=round(len(local_ids & shared_ids) / denominator * 100, 2)
+                if denominator
+                else 0.0,
+                collective_coverage=100.0 if denominator else 0.0,
+            ),
+            recommended_controls=controls,
+        )
+
+    @staticmethod
+    def _validate_packages(packages: list[ThreatIntelligencePackage]) -> None:
+        package_ids = [package.package_id for package in packages]
+        if len(package_ids) != len(set(package_ids)):
+            raise ValueError("Duplicate threat intelligence package IDs are not allowed")
+        if any(package.tlp == "TLP:RED" for package in packages):
+            raise ValueError("TLP:RED intelligence cannot be added to collective analysis")
+
+    @staticmethod
+    def _sanitize_indicators(indicators: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        def sanitize(value: Any) -> Any:
+            if isinstance(value, dict):
+                return {
+                    key: "[REDACTED]"
+                    if key.lower() in {"password", "token", "secret", "api_key"}
+                    else sanitize(item)
+                    for key, item in value.items()
+                }
+            if isinstance(value, list):
+                return [sanitize(item) for item in value]
+            if isinstance(value, str):
+                return EvidenceProvenanceEngine._redact(value)
+            return value
+
+        return [sanitize(indicator) for indicator in indicators]
+
+    @staticmethod
+    def _indicator_key(indicator: dict[str, Any]) -> str:
+        return str(indicator.get("id") or indicator.get("value") or sorted(indicator.items()))

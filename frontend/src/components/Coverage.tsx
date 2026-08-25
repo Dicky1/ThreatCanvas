@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useThreatStore } from '../store/useThreatStore';
+import { api } from '../api/client';
 
 // 1. Definisikan interface props di sini
 interface CoverageProps {
@@ -15,9 +15,7 @@ const Coverage: React.FC<CoverageProps> = ({ scenarioId }) => {
     const fetchCoverage = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:8000/api/v1/coverage/${scenarioId}`);
-        if (!response.ok) throw new Error('Network response was not ok');
-        const data = await response.json();
+        const data = await api.coverage(scenarioId);
         setReport(data);
       } catch (error) {
         console.error("Error fetching coverage:", error);

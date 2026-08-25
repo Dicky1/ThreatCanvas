@@ -248,4 +248,13 @@ class AttackSimulationEngine:
             attack_path_disruption_score=max(0.0, min(100.0, apds)),
             optimized_controls=[],  
             simulation_summary=summary_text,
+            rw_apds={
+                "baseline_risk": 0,
+                "residual_risk": 0,
+                "attack_paths_eliminated": [],
+                "critical_paths_eliminated": [],
+                "weighted_node_disruption": 0,
+                "score": 0,
+                "weights": {},
+            },
         )

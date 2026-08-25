@@ -1,11 +1,16 @@
 import re
 from typing import Dict, Any
 from app.schemas.cir import CIRSpecification
+from app.services.attack_knowledge import ATTACKKnowledgeService
 
 
 class CIRValidator:
     @staticmethod
-    def validate(cir: CIRSpecification) -> Dict[str, Any]:
+    def validate(
+        cir: CIRSpecification,
+        attack_knowledge: ATTACKKnowledgeService | None = None,
+    ) -> Dict[str, Any]:
+        attack_knowledge = attack_knowledge or ATTACKKnowledgeService()
         report = {
             "valid": True,
             "groups": {
@@ -16,12 +21,16 @@ class CIRValidator:
             },
         }
 
-        # 1. Validasi MITRE (Technique & Tactic)
+        # 1. Validasi MITRE against the loaded ATT&CK knowledge base.
         for node in cir.attack_graph.nodes:
             if not re.match(r"^T\d{4}(\.\d{3})?$", node.technique):
                 report["groups"]["MITRE"]["errors"].append(
                     f"Format technique salah: {node.technique}"
                 )
+                report["groups"]["MITRE"]["passed"] = False
+            mitre_errors = attack_knowledge.validate_node(node.technique, node.tactic)
+            for error in mitre_errors:
+                report["groups"]["MITRE"]["errors"].append(error)
                 report["groups"]["MITRE"]["passed"] = False
             if not re.match(r"^TA\d{4}$", node.tactic):
                 report["groups"]["MITRE"]["errors"].append(

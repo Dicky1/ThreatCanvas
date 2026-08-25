@@ -1,0 +1,11 @@
+[
+  {
+    "event": {"Image": "powershell.exe", "CommandLine": "powershell -NoProfile -Command Get-Process"},
+    "malicious": true,
+    "technique_id": "T1059.001"
+  },
+  {
+    "event": {"Image": "notepad.exe", "CommandLine": "notepad.exe notes.txt"},
+    "malicious": false
+  }
+]
