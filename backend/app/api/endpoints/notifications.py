@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.notification import NotificationRecord
@@ -11,8 +11,15 @@ def list_notifications(db: Session = Depends(get_db)):
     return [{"id": row.id, "title": row.title, "message": row.message, "type": row.type, "read": row.read, "timestamp": int(row.created_at.timestamp() * 1000) if row.created_at else 0} for row in rows]
 
 @router.post("", status_code=201)
-def create_notification(payload: dict, db: Session = Depends(get_db)):
-    row = NotificationRecord(title=str(payload.get("title", "Notification")), message=str(payload.get("message", "")), type=str(payload.get("type", "info")), read=bool(payload.get("read", False)))
+async def create_notification(request: Request, db: Session = Depends(get_db)):
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    if not isinstance(payload, dict):
+        payload = {}
+    notification_type = payload.get("type") if payload.get("type") in {"success", "error", "info"} else "info"
+    row = NotificationRecord(title=str(payload.get("title") or "Notification")[:200], message=str(payload.get("message") or "")[:4000], type=notification_type, read=bool(payload.get("read", False)))
     db.add(row)
     db.commit()
     db.refresh(row)

@@ -67,7 +67,7 @@
 .knowledge-related small { color: #7f94a1; font-size: .75rem; }
 .knowledge-attributes { max-height: 220px; overflow: auto; margin: 0; padding: 12px; color: #bad0d9; border: 1px solid #243944; border-radius: 6px; background: #091117; font: .7rem/1.55 "Cascadia Code", Consolas, monospace; white-space: pre-wrap; }
 .knowledge-relationships .data-list { max-height: 360px; overflow: auto; }
-.collective-graph { min-height: 430px; overflow: hidden; border: 1px solid #20303d; border-radius: 8px; background: #0d151d; }
+.collective-graph { height: 430px; min-height: 430px; overflow: hidden; border: 1px solid #20303d; border-radius: 8px; background: #0d151d; }
 .collective-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .collective-form label { display: grid; gap: 6px; min-width: 0; }
 .collective-form label.span-2 { grid-column: span 2; }
