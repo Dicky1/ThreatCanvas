@@ -64,8 +64,18 @@ def _techniques(payload: dict[str, Any]) -> list[str]:
 
 
 def _tactics(payload: dict[str, Any]) -> set[str]:
+    tactic_ids = {
+        "initial access": "TA0001", "execution": "TA0002", "persistence": "TA0003",
+        "privilege escalation": "TA0004", "defense evasion": "TA0005",
+        "credential access": "TA0006", "discovery": "TA0007", "lateral movement": "TA0008",
+        "collection": "TA0009", "command and control": "TA0011", "exfiltration": "TA0010",
+        "impact": "TA0040", "resource development": "TA0042", "reconnaissance": "TA0043",
+    }
+    def canonical(value: Any) -> str:
+        raw = str(value or "").strip().lower()
+        return tactic_ids.get(raw, raw.upper() if raw.startswith("ta") else raw)
     return {
-        str(node.get("tactic", "")).lower()
+        canonical(node.get("tactic"))
         for node in _nodes(payload)
         if node.get("tactic")
     }
@@ -126,7 +136,7 @@ def evaluate_scenario(cir_payload: dict[str, Any], ground_truth: dict[str, Any])
     predicted_techniques = _techniques(cir_payload)
     attack_metrics = classification(set(expected_techniques), set(predicted_techniques))
 
-    expected_tactics = {str(tactic).lower() for tactic in ground_truth.get("expected_tactics", [])}
+    expected_tactics = {_tactics({"attack_graph": {"nodes": [{"tactic": tactic}]}}).pop() for tactic in ground_truth.get("expected_tactics", [])}
     predicted_tactics = _tactics(cir_payload)
     tactic_recall = (
         round(len(expected_tactics & predicted_tactics) / len(expected_tactics) * 100, 2)
