@@ -29,9 +29,9 @@ The project is built around a clear separation of concerns:
 - CTI connector normalization for STIX/TAXII/MISP/OpenCTI-style JSON payloads.
 - Multi-model CIR consensus analysis for agreed/disputed ATT&CK techniques.
 - Collective defense correlation with local-vs-collective detection union coverage.
-- Research telemetry for parse runs plus benchmark summary visualization.
+- Research telemetry for parse, detection-validation, and simulation runs plus benchmark summary visualization.
 - Benchmark fixtures, sample CIR outputs, and a deterministic benchmark evaluator.
-- JWT authentication, scenario history, prompt library UI, and client-side notifications.
+- JWT authentication, scenario history, prompt library UI, and persisted notification history with offline-safe local fallback.
 
 ## Architecture
 
@@ -68,10 +68,11 @@ ThreatCanvas/
 ├── backend/
 │   ├── app/
 │   │   ├── api/endpoints/       # auth, parser, coverage, graph, reasoning,
-│   │   │                         # simulation, STIX, CTI, consensus, timeline
+│   │   │                         # simulation, STIX, CTI, consensus, timeline,
+│   │   │                         # research, benchmark, notifications
 │   │   ├── core/                # config, database, security
 │   │   ├── data/                # detection fixtures and D3FEND seed mappings
-│   │   ├── models/              # SQLAlchemy models
+│   │   ├── models/              # scenarios, experiments, notifications, users
 │   │   ├── repositories/        # persistence helpers
 │   │   ├── schemas/             # Pydantic API/CIR schemas
 │   │   └── services/            # parsing, validation, graph, CTI, STIX,
@@ -199,6 +200,10 @@ Most endpoints are under `/api/v1`. STIX endpoints currently use `/api/stix`. Us
 | `POST` | `/api/v1/validate/{type}/{scenario_id}` | Validate generated detection artifacts |
 | `POST` | `/api/v1/{scenario_id}` | Run APDS/RW-APDS simulation and defense optimization |
 | `GET` | `/api/v1/research/metrics/{scenario_id}` | Read research telemetry |
+| `GET` | `/api/v1/notifications` | Read persisted notification history |
+| `POST` | `/api/v1/notifications` | Persist a notification event |
+| `PATCH` | `/api/v1/notifications/{id}/read` | Mark a notification as read |
+| `DELETE` | `/api/v1/notifications` | Clear notification history |
 | `GET` | `/api/v1/benchmark/report/summary` | Read bundled benchmark report summary |
 | `GET` | `/api/v1/benchmark/{scenario_id}` | Read active-scenario benchmark summary |
 | `POST` | `/api/v1/collective/analyze` | Analyze sanitized collective-defense packages |
@@ -266,7 +271,7 @@ Current local verification status:
 - D3FEND uses a bundled seed mapping unless `D3FEND_MAPPING_PATH` points to a richer mapping file.
 - Benchmark sample results are demonstration fixtures; paper-grade numbers should be generated from fresh parser runs and larger ground truth.
 - Prompt Library is currently frontend-managed data, not a backend CRUD resource.
-- Notifications are client-side only; there is no notification history endpoint yet.
+- Notification history is persisted by the backend; the frontend keeps an offline-safe local fallback when the API is unavailable.
 - Redis/Celery dependencies are present for future async extensions, but the current request path is synchronous.
 
 ## License

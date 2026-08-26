@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Header from './Header';
+import { useNotificationStore } from '../../store/useNotificationStore';
 
 /**
  * Layout Wrapper utama yang membungkus seluruh halaman aplikasi.
  */
 export default function MainLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const hydrate = useNotificationStore((state) => state.hydrate);
+  useEffect(() => { void hydrate(); }, [hydrate]);
   return (
     <div className="app-shell flex h-screen bg-background overflow-hidden">
       <Sidebar mobileOpen={mobileOpen} onClose={() => setMobileOpen(false)} />

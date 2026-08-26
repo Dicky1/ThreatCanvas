@@ -13,8 +13,10 @@ from app.api.endpoints import benchmark
 from app.api.endpoints import cti
 from app.api.endpoints import consensus
 from app.api.endpoints import timeline
+from app.api.endpoints import notifications
 from app.models import user 
 from app.models import experiment
+from app.models import notification
 
 Base.metadata.create_all(bind=engine)
 
@@ -42,6 +44,7 @@ app.include_router(benchmark.router, prefix="/api/v1")
 app.include_router(cti.router, prefix="/api/v1")
 app.include_router(consensus.router, prefix="/api/v1")
 app.include_router(timeline.router, prefix="/api/v1")
+app.include_router(notifications.router, prefix="/api/v1")
 
 @app.get("/health")
 async def health_check():

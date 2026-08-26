@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { api } from '../api/client';
 
 export type NotificationType = 'success' | 'error' | 'info';
 
@@ -17,6 +18,7 @@ interface NotificationState {
   markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearAll: () => void;
+  hydrate: () => Promise<void>;
 }
 
 const MAX_NOTIFICATIONS = 20; // batasi supaya list tidak membengkak
@@ -24,32 +26,40 @@ const MAX_NOTIFICATIONS = 20; // batasi supaya list tidak membengkak
 export const useNotificationStore = create<NotificationState>((set) => ({
   notifications: [],
 
-  addNotification: (n) =>
+  addNotification: (n) => {
+    const local = { ...n, id: crypto.randomUUID(), timestamp: Date.now(), read: false };
     set((state) => ({
       notifications: [
-        {
-          ...n,
-          id: crypto.randomUUID(),
-          timestamp: Date.now(),
-          read: false,
-        },
+        local,
         ...state.notifications,
       ].slice(0, MAX_NOTIFICATIONS),
-    })),
+    }));
+    void api.createNotification(n).catch(() => undefined);
+  },
 
-  markAsRead: (id) =>
+  markAsRead: (id) => {
     set((state) => ({
       notifications: state.notifications.map((n) =>
         n.id === id ? { ...n, read: true } : n
       ),
-    })),
+    }));
+    void api.markNotificationRead(id).catch(() => undefined);
+  },
 
   markAllAsRead: () =>
     set((state) => ({
       notifications: state.notifications.map((n) => ({ ...n, read: true })),
     })),
 
-  clearAll: () => set({ notifications: [] }),
+  clearAll: () => { set({ notifications: [] }); void api.clearNotifications().catch(() => undefined); },
+  hydrate: async () => {
+    try {
+      const notifications = await api.notifications();
+      set({ notifications: notifications.slice(0, MAX_NOTIFICATIONS) });
+    } catch {
+      // Backend history is optional; retain local notifications when offline.
+    }
+  },
 }));
 
 /**
