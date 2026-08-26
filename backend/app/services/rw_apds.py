@@ -80,9 +80,12 @@ class RWAPDSCalculator:
         eliminated_critical_paths = [
             path for path in critical_paths if tuple(path) not in residual_path_keys
         ]
+        # RW-APDS measures the proportion of the actual baseline weighted risk
+        # removed by the defensive intervention, rather than normalizing against
+        # an unrelated theoretical maximum.
         disruption = (
-            ((baseline_risk - residual_risk) / (100 * len(baseline_nodes))) * 100
-            if baseline_nodes
+            ((baseline_risk - residual_risk) / baseline_risk) * 100
+            if baseline_risk > 0
             else 0.0
         )
         return {

@@ -260,7 +260,7 @@ python -m benchmark.evaluation.report --cir-dir benchmark/results
 
 Current local verification status:
 
-- Backend tests: `32 passed`
+- Backend tests: `33 passed`
 - Frontend build: passing
 - Frontend lint: passing
 - Benchmark sample report: `3` scenarios

@@ -142,8 +142,13 @@ class CollectiveDefenseEngine:
             if not targets:
                 key = tuple(path)
                 if len(path) > 2 and key not in observed:
-                    packages = sorted({pkg for edge in graph.edges if edge.source in path and edge.target in path for pkg in edge.source_packages})
-                    confidence = min((edge.confidence for edge in graph.edges if edge.source in path and edge.target in path), default=0.0)
+                    path_edges = set(zip(path, path[1:]))
+                    supporting_edges = [
+                        edge for edge in graph.edges
+                        if (edge.source, edge.target) in path_edges
+                    ]
+                    packages = sorted({pkg for edge in supporting_edges for pkg in edge.source_packages})
+                    confidence = min((edge.confidence for edge in supporting_edges), default=0.0)
                     results.append(EmergingAttackPath(techniques=path, confidence=confidence, source_packages=packages, derived_from=packages))
                 return
             for target in targets:

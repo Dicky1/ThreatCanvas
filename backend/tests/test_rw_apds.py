@@ -14,7 +14,7 @@ def node(step_id, **values):
     )
 
 
-def test_high_risk_disruption_scores_higher_than_low_risk_disruption():
+def test_full_removal_scores_100_percent_for_any_baseline_risk():
     high = node(
         "high",
         technique_criticality=1,
@@ -45,7 +45,8 @@ def test_high_risk_disruption_scores_higher_than_low_risk_disruption():
     high_result = calculator.score([high], [], [["high"]], [], [["high"]])
     low_result = calculator.score([low], [], [["low"]], [], [["low"]])
 
-    assert high_result["score"] > low_result["score"]
+    assert high_result["score"] == 100.0
+    assert low_result["score"] == 100.0
     assert high_result["baseline_risk"] > low_result["baseline_risk"]
     assert high_result["critical_paths_eliminated"] == [["high"]]
 
@@ -66,4 +67,4 @@ def test_weights_are_normalized_and_configurable():
     )
 
     assert result["weights"]["technique_criticality"] == 0.75
-    assert result["score"] == 75.0
+    assert result["score"] == 100.0
