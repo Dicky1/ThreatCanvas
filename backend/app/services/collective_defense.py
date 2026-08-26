@@ -7,6 +7,7 @@ from app.schemas.collective import (
     CollectiveThreatGraph,
     CoverageSummary,
     SharedAttackPath,
+    EmergingAttackPath,
     SharedTechnique,
     ThreatIntelligencePackage,
 )
@@ -88,6 +89,7 @@ class CollectiveDefenseEngine:
             collective_detected_ids = shared_ids
         denominator = len(shared_ids)
         collective_graph = self._build_collective_graph(shared, paths)
+        emerging = self._derive_emerging_paths(collective_graph, paths)
         controls = {
             technique: list(self.threat_engine.MITRE_CONTROLS.get(technique, []))
             for technique in sorted(shared_ids)
@@ -104,6 +106,7 @@ class CollectiveDefenseEngine:
                 )
                 for path, data in sorted(paths.items())
             ],
+            derived_emerging_paths=emerging,
             collective_graph=collective_graph,
             coverage=CoverageSummary(
                 observed_techniques=sorted(observed_ids),
@@ -122,6 +125,33 @@ class CollectiveDefenseEngine:
             ),
             recommended_controls=controls,
         )
+
+    @staticmethod
+    def _derive_emerging_paths(graph: CollectiveThreatGraph, observed_paths: dict[tuple[str, ...], dict[str, Any]]) -> list[EmergingAttackPath]:
+        adjacency: dict[str, list[str]] = {}
+        indegree: dict[str, int] = {node.technique_id: 0 for node in graph.nodes}
+        for edge in graph.edges:
+            adjacency.setdefault(edge.source, []).append(edge.target)
+            indegree[edge.target] = indegree.get(edge.target, 0) + 1
+        starts = [node for node, degree in indegree.items() if degree == 0]
+        observed = set(observed_paths)
+        results: list[EmergingAttackPath] = []
+        def walk(path: list[str]) -> None:
+            current = path[-1]
+            targets = adjacency.get(current, [])
+            if not targets:
+                key = tuple(path)
+                if len(path) > 2 and key not in observed:
+                    packages = sorted({pkg for edge in graph.edges if edge.source in path and edge.target in path for pkg in edge.source_packages})
+                    confidence = min((edge.confidence for edge in graph.edges if edge.source in path and edge.target in path), default=0.0)
+                    results.append(EmergingAttackPath(techniques=path, confidence=confidence, source_packages=packages, derived_from=packages))
+                return
+            for target in targets:
+                if target not in path and len(path) < 12:
+                    walk(path + [target])
+        for start in starts:
+            walk([start])
+        return results
 
     @staticmethod
     def _build_collective_graph(

@@ -11,6 +11,8 @@ from app.services.defense_optimization_engine import DefenseOptimizationEngine
 from app.services.threat_reasoning_engine import ThreatReasoningEngine
 from app.services.d3fend_mapping import D3FENDMappingService
 from app.services.budget_optimizer import BudgetOptimizer
+from app.models.experiment import ExperimentMetric
+from time import perf_counter
 
 # Inisialisasi router FastAPI
 router = APIRouter()
@@ -33,6 +35,7 @@ async def run_attack_simulation(
     dan mengkalkulasi ulang seluruh metrik secara deterministik.
     """
 
+    started = perf_counter()
     # 1. Ambil data scenario dari DB
     scenario = db.query(ScenarioRecord).filter(ScenarioRecord.id == scenario_id).first()
 
@@ -128,6 +131,24 @@ async def run_attack_simulation(
                 node_techniques=node_techniques,
             )
 
+        db.add(ExperimentMetric(
+            scenario_id=scenario_id,
+            operation="simulation",
+            duration_ms=round((perf_counter() - started) * 1000, 2),
+            status="success",
+            node_count=sim_result.metrics_before.node_count,
+            edge_count=sim_result.metrics_before.edge_count,
+            details={
+                "apds": sim_result.attack_path_disruption_score,
+                "rw_apds": sim_result.rw_apds.score,
+                "baseline_risk": sim_result.rw_apds.baseline_risk,
+                "residual_risk": sim_result.rw_apds.residual_risk,
+                "weighted_node_disruption": sim_result.rw_apds.weighted_node_disruption,
+                "attack_paths_eliminated": len(sim_result.rw_apds.attack_paths_eliminated),
+                "critical_paths_eliminated": len(sim_result.rw_apds.critical_paths_eliminated),
+            },
+        ))
+        db.commit()
         return sim_result
 
     except Exception as e:

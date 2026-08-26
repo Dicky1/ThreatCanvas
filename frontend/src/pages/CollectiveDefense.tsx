@@ -247,6 +247,16 @@ export default function CollectiveDefense() {
               )) : <EmptyState title="No shared paths" description="No ordered attack path was returned by the backend." />}
             </div>
           </Panel>
+          <Panel title="Emerging collective paths" description="Paths derived by combining edges from multiple packages; they were not observed as a complete path by one package.">
+            <div className="data-list">
+              {result.derived_emerging_paths?.length ? result.derived_emerging_paths.map((path) => (
+                <div className="data-row" key={`emerging-${path.techniques.join('-')}`}>
+                  <div><strong>{path.techniques.join(' -> ')}</strong><small>Derived from {path.derived_from.join(', ')}</small></div>
+                  <StatusBadge tone="warn">EMERGING · {Math.round(path.confidence * 100)}%</StatusBadge>
+                </div>
+              )) : <EmptyState title="No emerging paths" description="No cross-source path was derived beyond individually observed paths." />}
+            </div>
+          </Panel>
           <Panel title="Recommended controls" description="Controls are returned only when the backend has explicit mappings for shared techniques.">
             <div className="data-list">
               {Object.entries(result.recommended_controls).length ? Object.entries(result.recommended_controls).map(([technique, controls]) => (

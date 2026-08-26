@@ -187,6 +187,14 @@ export interface CollectiveDefenseResult {
     confidence: number;
     source_packages: string[];
   }>;
+  derived_emerging_paths: Array<{
+    techniques: string[];
+    confidence: number;
+    source_packages: string[];
+    derived_from: string[];
+    status: 'EMERGING';
+    observed_as_complete_path: boolean;
+  }>;
   collective_graph: {
     nodes: Array<{
       technique_id: string;

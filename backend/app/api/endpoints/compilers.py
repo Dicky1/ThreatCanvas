@@ -9,6 +9,8 @@ from app.services.sigma_compiler import SigmaCompiler
 from app.services.kql_compiler import KQLCompiler  # Pastikan file ini sudah ada
 from app.services.spl_compiler import SPLCompiler  # Pastikan file ini sudah ada
 from pydantic import BaseModel
+from app.models.experiment import ExperimentMetric
+from time import perf_counter
 
 router = APIRouter()
 
@@ -59,6 +61,7 @@ def validate_artifact(
     request: DetectionValidationRequest,
     db: Session = Depends(get_db),
 ):
+    started = perf_counter()
     repo = ScenarioRepository(db)
     record = repo.get_by_id(scenario_id)
     if not record:
@@ -70,9 +73,26 @@ def validate_artifact(
             raise HTTPException(status_code=400, detail="Tipe artifact tidak didukung")
         content = compilers[type](cir_data).compile()
         technique_id = cir_data.attack_graph.nodes[0].technique if cir_data.attack_graph.nodes else None
-        return DetectionValidationService().validate(
+        result = DetectionValidationService().validate(
             type, content, technique_id=technique_id, events=request.events or None
         )
+        db.add(ExperimentMetric(
+            scenario_id=scenario_id,
+            operation="detection_validation",
+            duration_ms=round((perf_counter() - started) * 1000, 2),
+            status=result.state.lower(),
+            details={
+                "detection_precision": result.metrics.precision,
+                "detection_recall": result.metrics.recall,
+                "detection_f1": result.metrics.f1,
+                "tp": result.metrics.tp,
+                "fp": result.metrics.fp,
+                "tn": result.metrics.tn,
+                "fn": result.metrics.fn,
+            },
+        ))
+        db.commit()
+        return result
     except HTTPException:
         raise
     except Exception as e:

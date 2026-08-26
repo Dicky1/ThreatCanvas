@@ -36,6 +36,11 @@ class SharedAttackPath(BaseModel):
     confidence: float
     source_packages: list[str]
 
+class EmergingAttackPath(SharedAttackPath):
+    status: Literal["EMERGING"] = "EMERGING"
+    derived_from: list[str]
+    observed_as_complete_path: bool = False
+
 
 class CoverageSummary(BaseModel):
     observed_techniques: list[str]
@@ -72,6 +77,7 @@ class CollectiveDefenseResult(BaseModel):
     shared_techniques: list[SharedTechnique]
     sanitized_indicators: list[dict[str, Any]]
     shared_attack_paths: list[SharedAttackPath]
+    derived_emerging_paths: list[EmergingAttackPath] = Field(default_factory=list)
     collective_graph: CollectiveThreatGraph
     coverage: CoverageSummary
     recommended_controls: dict[str, list[str]]
