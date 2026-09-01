@@ -15,6 +15,10 @@ import type {
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
 
+// Shared with useAuthStore so both sides agree on where the JWT lives.
+export const TOKEN_KEY = 'tc_token';
+export const USER_KEY = 'tc_user';
+
 export class ApiError extends Error {
   public readonly status: number;
 
@@ -38,6 +42,15 @@ function formatErrorDetail(detail: unknown): string {
   return 'The request failed.';
 }
 
+function authHeader(): Record<string, string> {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 20_000);
@@ -45,7 +58,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       signal: controller.signal,
-      headers: { Accept: 'application/json', ...init?.headers },
+      headers: { Accept: 'application/json', ...authHeader(), ...init?.headers },
     });
     const text = await response.text();
     let body: unknown = null;
@@ -58,6 +71,17 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       const detail = typeof body === 'object' && body !== null && 'detail' in body
         ? formatErrorDetail((body as { detail: unknown }).detail)
         : `Request failed with HTTP ${response.status}`;
+      if (response.status === 401) {
+        // Token missing/expired/invalid: clear it and let the app react
+        // (useAuthStore listens for this and redirects to /login).
+        try {
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+        } catch {
+          /* localStorage unavailable - nothing to clean up */
+        }
+        window.dispatchEvent(new CustomEvent('tc:unauthorized'));
+      }
       throw new ApiError(response.status, detail);
     }
     return body as T;

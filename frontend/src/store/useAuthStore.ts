@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api } from '../api/client';
+import { api, TOKEN_KEY, USER_KEY } from '../api/client';
 
 /**
  * Struktur data user yang dikembalikan backend (tanpa password)
@@ -30,9 +30,6 @@ interface AuthState {
   logout: () => void;
   clearError: () => void;
 }
-
-const TOKEN_KEY = 'tc_token';
-const USER_KEY = 'tc_user';
 
 // Hydrate dari localStorage saat store pertama kali dibuat,
 // supaya user tetap login walau browser di-refresh.
@@ -104,3 +101,11 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   clearError: () => set({ error: null }),
 }));
+
+// The API client dispatches this when a request comes back 401 (missing,
+// expired, or otherwise invalid token). React by clearing auth state so
+// ProtectedRoute redirects to /login instead of leaving the user stuck
+// staring at failed requests.
+window.addEventListener('tc:unauthorized', () => {
+  useAuthStore.getState().logout();
+});

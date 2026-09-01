@@ -1,5 +1,6 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.api.deps import get_current_user
 from app.api.endpoints import parser, compilers, coverage
 from app.core.database import engine, Base
 from app.api.endpoints import graph_analysis
@@ -30,21 +31,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(parser.router, prefix="/api/v1", tags=["Parser"])
-app.include_router(compilers.router, prefix="/api/v1", tags=["Compilers"])
-app.include_router(coverage.router, prefix="/api/v1", tags=["Coverage"])
-app.include_router(graph_analysis.router, prefix="/api/v1", tags=["Analysis"])
-app.include_router(reasoning.router, prefix="/api/v1", tags=["Reasoning"])
+# auth.router (login/register) stays public - every other router requires a
+# valid JWT via get_current_user, applied once here rather than per-endpoint.
+protected = [Depends(get_current_user)]
+
+app.include_router(parser.router, prefix="/api/v1", tags=["Parser"], dependencies=protected)
+app.include_router(compilers.router, prefix="/api/v1", tags=["Compilers"], dependencies=protected)
+app.include_router(coverage.router, prefix="/api/v1", tags=["Coverage"], dependencies=protected)
+app.include_router(graph_analysis.router, prefix="/api/v1", tags=["Analysis"], dependencies=protected)
+app.include_router(reasoning.router, prefix="/api/v1", tags=["Reasoning"], dependencies=protected)
 app.include_router(auth.router, prefix="/api/v1", tags=["Auth"])
-app.include_router(simulation.router, prefix="/api/v1", tags=["Simulation"])  # <-- TAMBAHAN PHASE 7
-app.include_router(stix.router)
-app.include_router(collective.router)
-app.include_router(research.router, prefix="/api/v1")
-app.include_router(benchmark.router, prefix="/api/v1")
-app.include_router(cti.router, prefix="/api/v1")
-app.include_router(consensus.router, prefix="/api/v1")
-app.include_router(timeline.router, prefix="/api/v1")
-app.include_router(notifications.router, prefix="/api/v1")
+app.include_router(stix.router, dependencies=protected)
+app.include_router(collective.router, dependencies=protected)
+app.include_router(research.router, prefix="/api/v1", dependencies=protected)
+app.include_router(benchmark.router, prefix="/api/v1", dependencies=protected)
+app.include_router(cti.router, prefix="/api/v1", dependencies=protected)
+app.include_router(consensus.router, prefix="/api/v1", dependencies=protected)
+app.include_router(timeline.router, prefix="/api/v1", dependencies=protected)
+app.include_router(notifications.router, prefix="/api/v1", dependencies=protected)
+# simulation.router declares POST /{scenario_id} with NO prefix of its own,
+# i.e. a bare catch-all under /api/v1/. Starlette matches routes in
+# registration order (not by specificity), so this MUST stay registered last
+# among the /api/v1 routers - otherwise it silently shadows any other
+# single-segment /api/v1/<literal> route registered after it (this is
+# exactly what broke POST /api/v1/notifications before this was reordered).
+app.include_router(simulation.router, prefix="/api/v1", tags=["Simulation"], dependencies=protected)  # <-- TAMBAHAN PHASE 7
 
 @app.get("/health")
 async def health_check():
