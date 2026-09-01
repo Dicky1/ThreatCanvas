@@ -1,11 +1,53 @@
 {
   "mappings": [
     {
+      "attack_technique": "T1566",
+      "defensive_technique": "Email Filtering",
+      "rationale": "Filters malicious phishing payloads and links before delivery and reduces initial-access success.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.72
+    },
+    {
       "attack_technique": "T1566.001",
       "defensive_technique": "Email Filtering",
       "rationale": "Filters malicious spearphishing attachments before delivery and reduces initial-access success.",
       "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
       "confidence": 0.74
+    },
+    {
+      "attack_technique": "T1190",
+      "defensive_technique": "Vulnerability Scanning and Patch Management",
+      "rationale": "Identifies and remediates exploitable weaknesses in public-facing applications before they can be exploited.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.7
+    },
+    {
+      "attack_technique": "T1505.003",
+      "defensive_technique": "Web Application Firewall and File Integrity Monitoring",
+      "rationale": "Blocks malicious web shell upload/execution and detects unauthorized file changes on web servers.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.73
+    },
+    {
+      "attack_technique": "T1204",
+      "defensive_technique": "Application Control and Attachment Sandboxing",
+      "rationale": "Prevents execution of untrusted or malicious files delivered via user-execution lures through allowlisting and detonation sandboxing.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.71
+    },
+    {
+      "attack_technique": "T1204.002",
+      "defensive_technique": "Application Control and Attachment Sandboxing",
+      "rationale": "Prevents execution of malicious files opened by users through allowlisting and detonation sandboxing.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.71
+    },
+    {
+      "attack_technique": "T1059",
+      "defensive_technique": "Script Execution Analysis",
+      "rationale": "Detects and constrains suspicious command-interpreter activity, encoded commands, and scripting-engine abuse.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.76
     },
     {
       "attack_technique": "T1059.001",
@@ -15,25 +57,11 @@
       "confidence": 0.78
     },
     {
-      "attack_technique": "T1003",
-      "defensive_technique": "Credential Hardening",
-      "rationale": "Reduces credential dumping impact by hardening credential stores and monitoring privileged credential access.",
+      "attack_technique": "T1047",
+      "defensive_technique": "WMI Activity Monitoring",
+      "rationale": "Detects abuse of Windows Management Instrumentation for remote command execution and lateral movement.",
       "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
-      "confidence": 0.76
-    },
-    {
-      "attack_technique": "T1021.002",
-      "defensive_technique": "Network Segmentation",
-      "rationale": "Limits SMB and Windows Admin Share lateral movement by constraining reachable administrative paths.",
-      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
-      "confidence": 0.8
-    },
-    {
-      "attack_technique": "T1486",
-      "defensive_technique": "File Backup and Recovery",
-      "rationale": "Reduces ransomware impact by preserving recoverable copies of encrypted data and shortening restoration time.",
-      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
-      "confidence": 0.77
+      "confidence": 0.7
     },
     {
       "attack_technique": "T1105",
@@ -43,11 +71,25 @@
       "confidence": 0.72
     },
     {
-      "attack_technique": "T1078",
-      "defensive_technique": "Multi-Factor Authentication",
-      "rationale": "Raises the cost of valid-account abuse and blocks many credential-only access paths.",
+      "attack_technique": "T1071.001",
+      "defensive_technique": "Web Proxy and TLS Inspection",
+      "rationale": "Detects and blocks malicious command-and-control traffic embedded in HTTP/S protocols.",
       "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
-      "confidence": 0.79
+      "confidence": 0.71
+    },
+    {
+      "attack_technique": "T1071.004",
+      "defensive_technique": "DNS Traffic Analysis",
+      "rationale": "Detects anomalous DNS query patterns and beaconing indicative of DNS-based command-and-control tunneling.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.7
+    },
+    {
+      "attack_technique": "T1562",
+      "defensive_technique": "Endpoint Sensor Health Monitoring",
+      "rationale": "Detects attempts to disable or tamper with security tools and preserves defensive visibility during attack execution.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.73
     },
     {
       "attack_technique": "T1562.001",
@@ -55,6 +97,237 @@
       "rationale": "Detects attempts to disable security tools and preserves defensive visibility during attack execution.",
       "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
       "confidence": 0.73
+    },
+    {
+      "attack_technique": "T1112",
+      "defensive_technique": "Registry Integrity Monitoring",
+      "rationale": "Detects unauthorized changes to security-relevant registry keys used for defense evasion and persistence.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.7
+    },
+    {
+      "attack_technique": "T1003",
+      "defensive_technique": "Credential Hardening",
+      "rationale": "Reduces credential dumping impact by hardening credential stores and monitoring privileged credential access.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.76
+    },
+    {
+      "attack_technique": "T1003.001",
+      "defensive_technique": "LSASS Access Restriction",
+      "rationale": "Restricts and monitors access to LSASS memory (e.g. RunAsPPL) to prevent credential dumping from process memory.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.78
+    },
+    {
+      "attack_technique": "T1555",
+      "defensive_technique": "Credential Store Hardening",
+      "rationale": "Restricts and monitors access to browser, OS, and third-party password stores to prevent bulk credential theft.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.72
+    },
+    {
+      "attack_technique": "T1557",
+      "defensive_technique": "Network Traffic Filtering and LLMNR/NBT-NS Hardening",
+      "rationale": "Disables legacy name-resolution broadcast protocols and filters unsolicited local-network traffic used for adversary-in-the-middle attacks.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.71
+    },
+    {
+      "attack_technique": "T1557.001",
+      "defensive_technique": "Network Traffic Filtering and LLMNR/NBT-NS Hardening",
+      "rationale": "Disables LLMNR/NBT-NS broadcast name resolution and monitors for SMB relay activity.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.72
+    },
+    {
+      "attack_technique": "T1557.002",
+      "defensive_technique": "Network Traffic Filtering and LLMNR/NBT-NS Hardening",
+      "rationale": "Detects and constrains ARP cache poisoning used to intercept local-network traffic.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.68
+    },
+    {
+      "attack_technique": "T1558.003",
+      "defensive_technique": "Service Account Credential Hardening",
+      "rationale": "Detects abnormal Kerberos service-ticket requests and hardens service accounts with managed, high-entropy credentials.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.74
+    },
+    {
+      "attack_technique": "T1053",
+      "defensive_technique": "Scheduled Task Monitoring",
+      "rationale": "Detects creation and modification of scheduled tasks/jobs used for execution and persistence.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.72
+    },
+    {
+      "attack_technique": "T1053.005",
+      "defensive_technique": "Scheduled Task Monitoring",
+      "rationale": "Detects creation and modification of Windows Scheduled Tasks used for execution and persistence.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.72
+    },
+    {
+      "attack_technique": "T1547.001",
+      "defensive_technique": "Persistence Mechanism Monitoring",
+      "rationale": "Detects new autostart registry run keys and startup-folder entries used to establish boot/logon persistence.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.71
+    },
+    {
+      "attack_technique": "T1016",
+      "defensive_technique": "Discovery Activity Detection",
+      "rationale": "Detects host and network reconnaissance commands used to map the local network configuration.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.62
+    },
+    {
+      "attack_technique": "T1087",
+      "defensive_technique": "Directory Service Query Monitoring",
+      "rationale": "Detects anomalous enumeration of local and domain accounts via directory-service and account-management APIs.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.65
+    },
+    {
+      "attack_technique": "T1049",
+      "defensive_technique": "Discovery Activity Detection",
+      "rationale": "Detects enumeration of active network connections used for lateral-movement targeting.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.62
+    },
+    {
+      "attack_technique": "T1083",
+      "defensive_technique": "Discovery Activity Detection",
+      "rationale": "Detects bulk file and directory enumeration commonly used to stage collection and exfiltration.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.6
+    },
+    {
+      "attack_technique": "T1021",
+      "defensive_technique": "Remote Service Access Restriction",
+      "rationale": "Constrains and monitors use of legitimate remote-service protocols to reduce lateral-movement reach.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.74
+    },
+    {
+      "attack_technique": "T1021.001",
+      "defensive_technique": "Remote Desktop Hardening and MFA",
+      "rationale": "Restricts RDP exposure and requires multi-factor authentication to reduce interactive lateral-movement success.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.77
+    },
+    {
+      "attack_technique": "T1021.002",
+      "defensive_technique": "Network Segmentation",
+      "rationale": "Limits SMB and Windows Admin Share lateral movement by constraining reachable administrative paths.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.8
+    },
+    {
+      "attack_technique": "T1570",
+      "defensive_technique": "Lateral Movement Traffic Analysis",
+      "rationale": "Detects abnormal internal file-transfer patterns used to stage tools on additional hosts.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.68
+    },
+    {
+      "attack_technique": "T1078",
+      "defensive_technique": "Multi-Factor Authentication",
+      "rationale": "Raises the cost of valid-account abuse and blocks many credential-only access paths.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.79
+    },
+    {
+      "attack_technique": "T1078.002",
+      "defensive_technique": "Domain Account Monitoring and MFA",
+      "rationale": "Enforces multi-factor authentication for domain accounts and alerts on anomalous domain-admin logon activity.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.78
+    },
+    {
+      "attack_technique": "T1078.003",
+      "defensive_technique": "Local Admin Password Management",
+      "rationale": "Randomizes and rotates local administrator credentials (e.g. LAPS) and restricts local admin logon over the network.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.75
+    },
+    {
+      "attack_technique": "T1550.002",
+      "defensive_technique": "Credential Access Restriction and LSA Protection",
+      "rationale": "Restricts NTLM hash reuse and hardens LSA to reduce the success of pass-the-hash lateral movement.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.73
+    },
+    {
+      "attack_technique": "T1574.002",
+      "defensive_technique": "Application Control and DLL Integrity Verification",
+      "rationale": "Enforces signed/allowlisted DLL loading to prevent malicious DLL side-loading through legitimate executables.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.71
+    },
+    {
+      "attack_technique": "T1041",
+      "defensive_technique": "Egress Traffic Filtering and DLP",
+      "rationale": "Detects and blocks bulk data exfiltration transmitted over an established command-and-control channel.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.73
+    },
+    {
+      "attack_technique": "T1048",
+      "defensive_technique": "Egress Traffic Filtering and DLP",
+      "rationale": "Detects and blocks exfiltration attempts sent over non-standard or alternative network protocols.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.71
+    },
+    {
+      "attack_technique": "T1486",
+      "defensive_technique": "File Backup and Recovery",
+      "rationale": "Reduces ransomware impact by preserving recoverable copies of encrypted data and shortening restoration time.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.77
+    },
+    {
+      "attack_technique": "T1490",
+      "defensive_technique": "Backup Immutability and Shadow Copy Protection",
+      "rationale": "Protects backup and shadow-copy infrastructure from tampering or deletion, preserving recovery options during ransomware impact.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.76
+    },
+    {
+      "attack_technique": "T1489",
+      "defensive_technique": "Critical Service Monitoring",
+      "rationale": "Alerts on unexpected stop or disable events for security and business-critical services during an active intrusion.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.68
+    },
+    {
+      "attack_technique": "T1531",
+      "defensive_technique": "Account Lockout Monitoring and Recovery Procedures",
+      "rationale": "Detects mass password resets or account disabling and provides break-glass recovery accounts to preserve responder access.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.66
+    },
+    {
+      "attack_technique": "T1070.004",
+      "defensive_technique": "Centralized Immutable Log Forwarding",
+      "rationale": "Forwards logs to a write-once collector so local file deletion cannot remove evidence of attacker activity.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.72
+    },
+    {
+      "attack_technique": "T1113",
+      "defensive_technique": "Endpoint Behavior Monitoring",
+      "rationale": "Detects unusual processes invoking screen-capture APIs and generating unexpected image artifacts.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.63
+    },
+    {
+      "attack_technique": "T1560.001",
+      "defensive_technique": "Data Loss Prevention and Archive Utility Monitoring",
+      "rationale": "Flags rare or automated use of archiving utilities and inspects outbound archives for sensitive data before exfiltration.",
+      "source": "ThreatCanvas bundled D3FEND-aligned seed mapping",
+      "confidence": 0.69
     }
   ]
 }

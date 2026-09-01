@@ -48,8 +48,12 @@ class ATTACKKnowledgeService:
     ):
         self.techniques = {}
         self.version = "compatibility-catalog"
-        if bundle_path is None:
+        if bundle_path is None and bundle is None:
             bundle_path = os.getenv("ATTACK_STIX_PATH")
+            if bundle_path is None:
+                default_bundle = Path(__file__).parents[1] / "data" / "enterprise-attack.json"
+                if default_bundle.exists():
+                    bundle_path = default_bundle
         if bundle_path:
             self.load_path(bundle_path)
         elif bundle is not None:
@@ -75,11 +79,13 @@ class ATTACKKnowledgeService:
             technique_id = self._external_id(obj)
             if not technique_id:
                 continue
+            # STIX kill_chain_phases use hyphenated phase names (e.g. "initial-access"),
+            # while TACTIC_IDS keys use spaces (e.g. "initial access") - normalize before lookup.
             phases = tuple(
-                TACTIC_IDS[phase["phase_name"].lower()]
+                TACTIC_IDS[phase["phase_name"].lower().replace("-", " ")]
                 for phase in obj.get("kill_chain_phases", [])
                 if phase.get("kill_chain_name") == "mitre-attack"
-                and phase.get("phase_name", "").lower() in TACTIC_IDS
+                and phase.get("phase_name", "").lower().replace("-", " ") in TACTIC_IDS
             )
             self.techniques[technique_id] = ATTACKTechnique(
                 technique_id=technique_id,

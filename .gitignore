@@ -24,6 +24,9 @@ venv/
 *.sqlite
 *.sqlite3
 
+# Large third-party reference data (fetched via backend/scripts/fetch_attack_data.py)
+backend/app/data/enterprise-attack.json
+
 # Frontend dependencies and build output
 node_modules/
 dist/
