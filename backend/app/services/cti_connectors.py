@@ -1,14 +1,71 @@
 from __future__ import annotations
 
+import ipaddress
 import json
+import os
 import re
+import socket
 from typing import Any, Callable
-from urllib.request import Request, urlopen
+from urllib.error import HTTPError
+from urllib.parse import urlparse
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from app.schemas.cti import CTIFetchRequest, CTIFetchResult
 
 
 FetchFn = Callable[[str, str | None], dict[str, Any]]
+
+_ALLOWED_SCHEMES = {"http", "https"}
+
+
+class SSRFBlockedError(ValueError):
+    """Raised when a requested CTI fetch URL targets a disallowed network."""
+
+
+class _NoRedirectHandler(HTTPRedirectHandler):
+    """Refuses to follow redirects, so a validated URL can't be swapped for an
+    internal one after the SSRF check has already passed (TOCTOU bypass)."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: D102
+        return None
+
+
+def _is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address, allow_private: bool) -> bool:
+    # Loopback (127.0.0.0/8, ::1), link-local (169.254.0.0/16 - includes the
+    # AWS/GCP/Azure metadata address 169.254.169.254), multicast, and other
+    # reserved ranges have no legitimate reason to be a CTI feed target and
+    # are always blocked. RFC1918 private ranges are blocked by default too,
+    # but can be opted back in for deployments with an internal MISP/TAXII
+    # server via CTI_ALLOW_PRIVATE_NETWORKS=true.
+    if ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_unspecified or ip.is_reserved:
+        return True
+    if ip.is_private and not allow_private:
+        return True
+    return False
+
+
+def validate_fetch_url(url: str) -> None:
+    """Raises SSRFBlockedError if `url` is not safe for the server to fetch."""
+    parsed = urlparse(url)
+    if parsed.scheme not in _ALLOWED_SCHEMES:
+        raise SSRFBlockedError(
+            f"Unsupported URL scheme {parsed.scheme!r}; only http/https are allowed."
+        )
+    if not parsed.hostname:
+        raise SSRFBlockedError("URL must include a hostname.")
+
+    allow_private = os.getenv("CTI_ALLOW_PRIVATE_NETWORKS", "false").strip().lower() == "true"
+    try:
+        addrinfo = socket.getaddrinfo(parsed.hostname, None)
+    except socket.gaierror as exc:
+        raise SSRFBlockedError(f"Could not resolve host {parsed.hostname!r}: {exc}") from exc
+
+    for *_rest, sockaddr in addrinfo:
+        ip = ipaddress.ip_address(sockaddr[0])
+        if _is_blocked_ip(ip, allow_private):
+            raise SSRFBlockedError(
+                f"Refusing to fetch {parsed.hostname!r}: resolves to disallowed address {ip}."
+            )
 
 
 class CTIConnectorService:
@@ -98,9 +155,19 @@ class CTIConnectorService:
 
     @staticmethod
     def _fetch_json(url: str, token: str | None) -> dict[str, Any]:
+        validate_fetch_url(url)
         headers = {"Accept": "application/json"}
         if token:
             headers["Authorization"] = f"Bearer {token}"
         request = Request(url, headers=headers)
-        with urlopen(request, timeout=15) as response:
-            return json.loads(response.read().decode("utf-8"))
+        opener = build_opener(_NoRedirectHandler)
+        try:
+            with opener.open(request, timeout=15) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except HTTPError as error:
+            if 300 <= error.code < 400:
+                raise SSRFBlockedError(
+                    f"Refusing to follow redirect from {url!r} "
+                    "(CTI fetch targets must be validated directly, not via redirect)."
+                ) from error
+            raise
