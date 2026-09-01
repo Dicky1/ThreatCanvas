@@ -176,9 +176,10 @@ Then sign in through the frontend login page.
 | `SECRET_KEY` | JWT signing secret | must be replaced |
 | `ALGORITHM` | JWT signing algorithm | `HS256` |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | Access token lifetime | `1440` |
-| `ATTACK_STIX_PATH` | Optional local ATT&CK STIX bundle path | unset |
+| `ATTACK_STIX_PATH` | Optional local ATT&CK STIX bundle path | auto-detects `backend/app/data/enterprise-attack.json` if present, else the built-in ~44-technique compatibility catalog |
 | `D3FEND_MAPPING_PATH` | Optional custom D3FEND mapping JSON path | bundled seed mapping |
 | `RW_APDS_WEIGHTS_JSON` | Optional RW-APDS weight override JSON | built-in weights |
+| `CTI_ALLOW_PRIVATE_NETWORKS` | Allow `/cti/fetch` to target RFC1918 private IPs (for an internal MISP/TAXII server) | `false` - loopback, link-local (incl. cloud metadata), and other reserved ranges are always blocked regardless of this setting |
 
 ## API Reference
 
