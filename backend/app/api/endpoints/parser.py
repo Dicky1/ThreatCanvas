@@ -17,8 +17,9 @@ router = APIRouter()
 attack_knowledge = ATTACKKnowledgeService()
 
 
+from pydantic import Field
 class ParseRequest(BaseModel):
-    scenario: str
+    scenario: str = Field(..., max_length=10000, description="Narasi ancaman maksimal 10.000 karakter")
 
 
 class ParseResponse(BaseModel):
@@ -77,9 +78,9 @@ async def parse_scenario(request: ParseRequest, db: Session = Depends(get_db)):
         db.commit()
         raise he
     except Exception as e:
-        # Tambahkan log di sini jika perlu untuk debugging
-        print(f"Error pada pipeline: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.getLogger(__name__).error(f"Error pada pipeline parse: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Gagal memproses skenario. Terjadi kesalahan internal server.")
 
 
 @router.get("/scenarios")

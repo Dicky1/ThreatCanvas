@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.security import verify_password, create_access_token
 from app.repositories.user_repo import UserRepository
@@ -16,6 +17,12 @@ def register(payload: UserCreate, db: Session = Depends(get_db)):
     Registrasi user baru. Untuk saat ini dipakai single-user
     (Lead Architect), tapi endpoint mendukung multi-user ke depannya.
     """
+    if not settings.ALLOW_REGISTRATION:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Registrasi pengguna dinonaktifkan oleh administrator."
+        )
+    
     user_repo = UserRepository(db)
 
     if user_repo.username_or_email_exists(payload.username, payload.email):

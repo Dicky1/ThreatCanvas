@@ -48,4 +48,6 @@ def get_threat_reasoning(scenario_id: str, db: Session = Depends(get_db)):
         return result
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import logging
+        logging.getLogger(__name__).error(f"Error reasoning: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Gagal menjalankan reasoning engine. Terjadi kesalahan internal.")

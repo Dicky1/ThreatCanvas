@@ -57,9 +57,11 @@ async def run_attack_simulation(
             original_cir = scenario.cir_graph_data
 
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error parsing CIR dari DB: {e}", exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Gagal mem-parsing data CIR dari Database: {str(e)}",
+            detail="Gagal mem-parsing data CIR dari Database.",
         )
 
     try:
@@ -151,6 +153,8 @@ async def run_attack_simulation(
         return sim_result
 
     except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Error simulasi: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500, detail=f"Simulasi gagal dijalankan: {str(e)}"
+            status_code=500, detail="Simulasi gagal dijalankan karena kesalahan internal."
         )

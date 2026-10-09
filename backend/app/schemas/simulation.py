@@ -6,12 +6,13 @@ from pydantic import BaseModel, Field
 class SimulationRequest(BaseModel):
     blocked_techniques: List[str] = Field(
         ...,
+        max_length=100, # list max items limit
         description="Daftar Technique ID MITRE ATT&CK (misal: T1059.001) yang disimulasikan untuk dicegah.",
-        example=["T1059.001", "T1003.001"],
+        json_schema_extra={"example": ["T1059.001", "T1003.001"]},
     )
     scoring_mode: Literal["apds", "rw_apds"] = "apds"
     security_budget: Optional[float] = Field(default=None, ge=0)
-    available_controls: List["BudgetControl"] = Field(default_factory=list)
+    available_controls: List["BudgetControl"] = Field(default_factory=list, max_length=20)
 
 
 class BudgetControl(BaseModel):

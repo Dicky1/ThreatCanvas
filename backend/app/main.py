@@ -2,11 +2,12 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.deps import get_current_user
 from app.api.endpoints import parser, compilers, coverage
+from app.core.config import settings
 from app.core.database import engine, Base
 from app.api.endpoints import graph_analysis
 from app.api.endpoints import reasoning
 from app.api.endpoints import auth
-from app.api.endpoints import simulation  # <-- TAMBAHAN PHASE 7
+from app.api.endpoints import simulation
 from app.api.endpoints import stix
 from app.api.endpoints import collective
 from app.api.endpoints import research
@@ -18,6 +19,10 @@ from app.api.endpoints import notifications
 from app.models.user import UserRecord as _UserRecord  # noqa: F401 – registers table with Base.metadata
 from app.models.experiment import ExperimentMetric as _ExperimentMetric  # noqa: F401 – registers table with Base.metadata
 from app.models.notification import NotificationRecord as _NotificationRecord  # noqa: F401 – registers table with Base.metadata
+
+# Crash early jika SECRET_KEY tidak aman. Ini mencegah server berjalan
+# dengan kunci default yang membuat seluruh JWT bisa dipalsukan.
+settings.validate_security()
 
 Base.metadata.create_all(bind=engine)
 

@@ -49,9 +49,9 @@ def compile_artifact(type: str, scenario_id: str, db: Session = Depends(get_db))
         return CompilerResponse(artifact_type=type, content=content, state="GENERATED")
 
     except Exception as e:
-        # Log error untuk debugging di terminal
-        print(f"Error compiling {type}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Gagal mengompilasi: {str(e)}")
+        import logging
+        logging.getLogger(__name__).error(f"Error compiling {type}: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Gagal mengompilasi artifact. Terjadi kesalahan internal server.")
 
 
 @router.post("/validate/{type}/{scenario_id}", response_model=DetectionValidationResult)
