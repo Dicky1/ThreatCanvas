@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useThreatStore } from "../store/useThreatStore";
-import { Send, Loader2, ShieldAlert, CheckCircle2, XCircle, ShieldCheck, Activity, Sliders } from "lucide-react";
+import { Send, Loader2, ShieldAlert, CheckCircle2, XCircle, ShieldCheck, Activity, Sliders, Download } from "lucide-react";
 import ThreatGraph from "../components/ThreatGraph";
 import ArtifactViewer from "../components/ArtifactViewer";
 import Coverage from "../components/Coverage";
@@ -76,6 +76,26 @@ export default function Dashboard() {
     .sort((left, right) => right.risk_score - left.risk_score)
     .slice(0, 3);
   const trustZones = groupPathByTrustZone(pathNodes);
+
+  const handleExportNavigator = async () => {
+    if (!scenarioId) return;
+    try {
+      const layerData = await api.exportNavigator(scenarioId);
+      const blob = new Blob([JSON.stringify(layerData, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `threatcanvas_navigator_${scenarioId}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to export navigator layer", err);
+      alert("Gagal mengekspor file Navigator. Pastikan skenario ini valid.");
+    }
+  };
+
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -207,6 +227,15 @@ export default function Dashboard() {
             <div className="min-h-[700px] space-y-5">
               {cirData ? (
                 <>
+                  <div className="flex justify-end pt-2 pb-4">
+                    <button
+                      onClick={handleExportNavigator}
+                      className="flex items-center px-4 py-2 bg-gray-800 border border-gray-700 text-sm text-gray-200 rounded-lg hover:bg-gray-700 hover:text-white transition-colors"
+                    >
+                      <Download size={16} className="mr-2" />
+                      Export Navigator Layer (JSON)
+                    </button>
+                  </div>
                   <ThreatGraph
                     data={(cirData as any).cir || cirData}
                     scenarioId={scenarioId ?? undefined}
