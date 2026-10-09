@@ -43,23 +43,6 @@ class OptimizedControl(BaseModel):
     source: Optional[str] = None
     confidence: Optional[float] = Field(default=None, ge=0, le=1)
 
-class RemovedNode(BaseModel):
-    step_id: str = Field(..., description="ID node yang dihapus")
-
-    technique: str = Field(
-        ..., description="MITRE ATT&CK Technique ID"
-    )
-
-    tactic: Optional[str] = Field(
-        default=None,
-        description="MITRE ATT&CK Tactic"
-    )
-
-    reason: str = Field(
-        ...,
-        description="Alasan node dihapus (Blocked Technique / Unreachable)"
-    )
-
 class SimulationMetrics(BaseModel):
     # Metrik Ancaman
     severity: str = Field(

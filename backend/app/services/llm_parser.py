@@ -1,5 +1,4 @@
 import json
-import uuid
 import logging
 from openai import AsyncOpenAI
 from app.schemas.cir import CIRSpecification

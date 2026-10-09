@@ -15,9 +15,9 @@ from app.api.endpoints import cti
 from app.api.endpoints import consensus
 from app.api.endpoints import timeline
 from app.api.endpoints import notifications
-from app.models import user 
-from app.models import experiment
-from app.models import notification
+from app.models.user import UserRecord as _UserRecord  # noqa: F401 – registers table with Base.metadata
+from app.models.experiment import ExperimentMetric as _ExperimentMetric  # noqa: F401 – registers table with Base.metadata
+from app.models.notification import NotificationRecord as _NotificationRecord  # noqa: F401 – registers table with Base.metadata
 
 Base.metadata.create_all(bind=engine)
 

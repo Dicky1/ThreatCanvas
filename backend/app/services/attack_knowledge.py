@@ -106,10 +106,6 @@ class ATTACKKnowledgeService:
         technique = self.resolve_technique(technique_id)
         return technique.name if technique else None
 
-    def resolve_tactics(self, technique_id: str) -> tuple[str, ...]:
-        technique = self.resolve_technique(technique_id)
-        return technique.tactics if technique else ()
-
     def resolve_subtechniques(self, technique_id: str) -> list[ATTACKTechnique]:
         prefix = f"{technique_id.strip().upper()}."
         return [
