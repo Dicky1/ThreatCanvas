@@ -17,6 +17,7 @@ from app.api.endpoints import consensus
 from app.api.endpoints import timeline
 from app.api.endpoints import notifications
 from app.api.endpoints import export
+from app.api.endpoints import chat
 from app.models.user import UserRecord as _UserRecord  # noqa: F401 – registers table with Base.metadata
 from app.models.experiment import ExperimentMetric as _ExperimentMetric  # noqa: F401 – registers table with Base.metadata
 from app.models.notification import NotificationRecord as _NotificationRecord  # noqa: F401 – registers table with Base.metadata
@@ -56,6 +57,7 @@ app.include_router(consensus.router, prefix="/api/v1", dependencies=protected)
 app.include_router(timeline.router, prefix="/api/v1", dependencies=protected)
 app.include_router(notifications.router, prefix="/api/v1", dependencies=protected)
 app.include_router(export.router, prefix="/api/v1", dependencies=protected)
+app.include_router(chat.router, prefix="/api/v1", dependencies=protected)
 # simulation.router declares POST /{scenario_id} with NO prefix of its own,
 # i.e. a bare catch-all under /api/v1/. Starlette matches routes in
 # registration order (not by specificity), so this MUST stay registered last

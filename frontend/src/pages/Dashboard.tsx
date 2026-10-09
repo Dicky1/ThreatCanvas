@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useThreatStore } from "../store/useThreatStore";
-import { Send, Loader2, ShieldAlert, CheckCircle2, XCircle, ShieldCheck, Activity, Sliders, Download } from "lucide-react";
+import { Send, Loader2, ShieldAlert, CheckCircle2, XCircle, ShieldCheck, Activity, Sliders, Download, Bot } from "lucide-react";
 import ThreatGraph from "../components/ThreatGraph";
 import ArtifactViewer from "../components/ArtifactViewer";
 import Coverage from "../components/Coverage";
 import ThreatAssessment from "../components/ThreatAssessment"; 
-import AttackSimulationView from "../components/AttackSimulationView"; // <-- Impor komponen simulasi
+import AttackSimulationView from "../components/AttackSimulationView";
 import AttackTimelinePlayer from "../components/AttackTimelinePlayer";
+import ScenarioChat from "../components/ScenarioChat";
 import { useLocation } from "react-router-dom";
 import { api } from "../api/client";
 import { StatusBadge } from "../components/common/Primitives";
@@ -29,7 +30,7 @@ export default function Dashboard() {
 
   // Tambahkan "simulation" ke dalam tipe union activeTab
   const [activeTab, setActiveTab] = useState<
-    "graph" | "artifacts" | "validation" | "coverage" | "assessment" | "simulation"
+    "graph" | "artifacts" | "validation" | "coverage" | "assessment" | "simulation" | "chat"
   >("graph");
 
   const [selectedArtifact, setSelectedArtifact] = useState<
@@ -59,7 +60,7 @@ export default function Dashboard() {
   }, [location, setScenarioInput]);
 
   const handleTabChange = (
-    tab: "graph" | "artifacts" | "validation" | "coverage" | "assessment" | "simulation"
+    tab: "graph" | "artifacts" | "validation" | "coverage" | "assessment" | "simulation" | "chat"
   ) => {
     setActiveTab(tab);
 
@@ -219,6 +220,17 @@ export default function Dashboard() {
             >
               <Sliders size={16} />
               Simulation
+            </button>
+            <button
+              onClick={() => handleTabChange("chat")}
+              className={`pb-2 flex items-center gap-2 whitespace-nowrap ${
+                activeTab === "chat"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-gray-400"
+              }`}
+            >
+              <Bot size={16} />
+              AI Copilot
             </button>
           </div>
 
@@ -466,6 +478,13 @@ export default function Dashboard() {
           {activeTab === "simulation" && scenarioId && (
             <div className="h-full">
               <AttackSimulationView scenarioId={scenarioId} />
+            </div>
+          )}
+
+          {/* ================= AI COPILOT ================= */}
+          {activeTab === "chat" && scenarioId && (
+            <div className="h-full">
+              <ScenarioChat scenarioId={scenarioId} />
             </div>
           )}
 

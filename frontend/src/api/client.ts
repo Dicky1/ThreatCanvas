@@ -164,5 +164,10 @@ export const api = {
   markNotificationRead: (id: string) => request(`/v1/notifications/${id}/read`, { method: 'PATCH' }),
   clearNotifications: () => request('/v1/notifications', { method: 'DELETE' }),
   exportNavigator: (id: string) => request<any>(`/v1/export/navigator/${id}`),
+  copilotChat: (id: string, messages: {role: string, content: string}[]) => request<{reply: string}>(`/v1/chat/${id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages })
+  }),
 };
 

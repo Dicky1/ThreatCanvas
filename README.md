@@ -14,6 +14,7 @@ Built with a clear separation of concerns:
 ## 🌟 Key Features
 
 - **🧠 AI-Powered Narrative Parsing**: Convert raw natural-language scenarios into structured CIR v2 graphs automatically.
+- **💬 AI Scenario Copilot (NEW)**: Interactive chat interface to ask questions about the generated threat scenario, request mitigation strategies, and explore the graph conceptually.
 - **🗺️ Interactive Threat Topologies**: Attack graph visualization with search, relationship filtering, critical path, high-risk nodes, blast radius, and graph metrics.
 - **🛡️ ATT&CK Navigator Export (NEW)**: Export your threat scenarios directly into a JSON layer compatible with the official MITRE ATT&CK Navigator.
 - **🔍 Detection Engineering (Sigma/KQL/SPL)**: Generate and validate detection artifacts (syntax, schema, telemetry mapping, precision, recall, and F1).
@@ -120,6 +121,7 @@ All functional endpoints require `Authorization: Bearer <token>` (obtained from 
 | `GET` | `/api/v1/scenarios` | List saved scenarios |
 | `GET` | `/api/v1/graph-analysis/{scenario_id}` | Graph metrics, critical path, asset risk |
 | `GET` | `/api/v1/compile/{type}/{scenario_id}` | Compile `sigma`, `kql`, or `spl` rules |
+| `POST` | `/api/v1/chat/{scenario_id}` | Ask questions to the AI Copilot about the scenario |
 | `POST` | `/api/v1/{scenario_id}` | Run APDS/RW-APDS simulation & defense optimization |
 | `GET` | `/api/v1/export/navigator/{scenario_id}`| Export scenario to MITRE ATT&CK Navigator JSON layer |
 | `POST` | `/api/v1/cti/fetch` | Normalize STIX/TAXII/MISP/OpenCTI-style JSON payloads |
