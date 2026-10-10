@@ -180,5 +180,6 @@ export const api = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages })
   }),
+  d3fend: (id: string) => request<{ remediations: Array<{ technique_id: string, technique_name: string, countermeasures: Array<{ defensive_technique: string, rationale: string, source: string, confidence: number }> }> }>(`/v1/d3fend/${id}`),
 };
 

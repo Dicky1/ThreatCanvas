@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useThreatStore } from "../store/useThreatStore";
-import { Send, Loader2, ShieldAlert, CheckCircle2, XCircle, ShieldCheck, Activity, Sliders, Download, Bot } from "lucide-react";
+import { Send, Loader2, ShieldAlert, CheckCircle2, XCircle, ShieldCheck, Activity, Sliders, Download, Bot, Shield } from "lucide-react";
 import ThreatGraph from "../components/ThreatGraph";
 import ArtifactViewer from "../components/ArtifactViewer";
 import Coverage from "../components/Coverage";
@@ -8,6 +8,7 @@ import ThreatAssessment from "../components/ThreatAssessment";
 import AttackSimulationView from "../components/AttackSimulationView";
 import AttackTimelinePlayer from "../components/AttackTimelinePlayer";
 import ScenarioChat from "../components/ScenarioChat";
+import D3fendCopilot from "../components/D3fendCopilot";
 import { useLocation } from "react-router-dom";
 import { api } from "../api/client";
 import { StatusBadge } from "../components/common/Primitives";
@@ -30,7 +31,7 @@ export default function Dashboard() {
 
   // Tambahkan "simulation" ke dalam tipe union activeTab
   const [activeTab, setActiveTab] = useState<
-    "graph" | "artifacts" | "validation" | "coverage" | "assessment" | "simulation" | "chat"
+    "graph" | "artifacts" | "validation" | "coverage" | "assessment" | "simulation" | "chat" | "remediation"
   >("graph");
 
   const [selectedArtifact, setSelectedArtifact] = useState<
@@ -60,7 +61,7 @@ export default function Dashboard() {
   }, [location, setScenarioInput]);
 
   const handleTabChange = (
-    tab: "graph" | "artifacts" | "validation" | "coverage" | "assessment" | "simulation" | "chat"
+    tab: "graph" | "artifacts" | "validation" | "coverage" | "assessment" | "simulation" | "chat" | "remediation"
   ) => {
     setActiveTab(tab);
 
@@ -250,6 +251,17 @@ export default function Dashboard() {
             >
               <Bot size={16} />
               AI Copilot
+            </button>
+            <button
+              onClick={() => handleTabChange("remediation")}
+              className={`pb-2 flex items-center gap-2 whitespace-nowrap ${
+                activeTab === "remediation"
+                  ? "border-b-2 border-primary text-primary"
+                  : "text-gray-400"
+              }`}
+            >
+              <Shield size={16} />
+              D3FEND Copilot
             </button>
           </div>
 
@@ -511,6 +523,13 @@ export default function Dashboard() {
           {activeTab === "chat" && scenarioId && (
             <div className="h-full">
               <ScenarioChat scenarioId={scenarioId} />
+            </div>
+          )}
+
+          {/* ================= D3FEND COPILOT ================= */}
+          {activeTab === "remediation" && scenarioId && (
+            <div className="h-full">
+              <D3fendCopilot scenarioId={scenarioId} />
             </div>
           )}
 
