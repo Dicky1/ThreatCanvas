@@ -73,3 +73,81 @@ def export_mitre_navigator_layer(
     }
 
     return layer
+
+
+from fastapi.responses import PlainTextResponse
+from datetime import datetime
+from app.services.graph_analysis_engine import GraphAnalysisEngine
+
+@router.get("/report/markdown/{scenario_id}", response_class=PlainTextResponse)
+def export_executive_report(
+    scenario_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserRecord = Depends(get_current_user)
+):
+    """
+    Ekspor skenario menjadi Laporan Eksekutif berformat Markdown.
+    Fitur ini 100% additive dan read-only.
+    """
+    repo = ScenarioRepository(db)
+    scenario = repo.get_scenario(scenario_id, current_user.id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Skenario tidak ditemukan")
+    
+    # 1. Grab Graph Analysis Data
+    try:
+        engine = GraphAnalysisEngine(scenario.cir_graph_data)
+        analysis = engine.analyze()
+    except Exception:
+        analysis = None
+
+    # 2. Build Markdown
+    nodes = scenario.cir_graph_data.get("attack_graph", {}).get("nodes", [])
+    edges = scenario.cir_graph_data.get("attack_graph", {}).get("edges", [])
+    techniques = set()
+    for n in nodes:
+        t = n.get("technique")
+        if t: techniques.add(t)
+        
+    date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
+    
+    md = []
+    md.append(f"# Executive Threat Assessment Report")
+    md.append(f"**Scenario ID**: `{scenario_id}`")
+    md.append(f"**Generated**: {date_str}\n")
+    
+    md.append(f"## 1. Threat Narrative")
+    md.append(f"> {scenario.original_input.strip()}\n")
+    
+    md.append(f"## 2. Attack Graph Summary")
+    md.append(f"- **Total Attack Steps (Nodes)**: {len(nodes)}")
+    md.append(f"- **Total Relationships (Edges)**: {len(edges)}")
+    md.append(f"- **Unique ATT&CK Techniques**: {len(techniques)}\n")
+    
+    if analysis:
+        md.append(f"## 3. Threat Assessment & Critical Path")
+        
+        md.append(f"### Critical Path Highlights")
+        crit_score = analysis.critical_path_explanation.criticality_score if analysis.critical_path_explanation else "N/A"
+        md.append(f"- **Criticality Score**: {crit_score}")
+        md.append(f"- **Path Length**: {len(analysis.critical_path) if analysis.critical_path else 0} nodes")
+        
+        missing_count = len(analysis.critical_path_explanation.missing_detection_nodes) if analysis.critical_path_explanation else 0
+        md.append(f"- **Missing Detections**: {missing_count}")
+        
+        trust_count = len(analysis.critical_path_explanation.trust_boundary_nodes) if analysis.critical_path_explanation else 0
+        md.append(f"- **Trust Boundary Crossings**: {trust_count}\n")
+        
+        if analysis.asset_risk_signals:
+            md.append(f"### Top Asset Risk Signals")
+            # Sort by risk score descending, take top 5
+            top_risks = sorted(analysis.asset_risk_signals, key=lambda x: getattr(x, "risk_score", 0), reverse=True)[:5]
+            for risk in top_risks:
+                md.append(f"- **Asset**: `{getattr(risk, 'asset_id', 'Unknown')}` (Risk Score: {getattr(risk, 'risk_score', 0)})")
+                if getattr(risk, "missing_controls", None):
+                    md.append(f"  - Missing Controls: {', '.join(risk.missing_controls)}")
+            md.append("\n")
+    
+    md.append(f"---\n*Report generated automatically by ThreatCanvas AI.*")
+    
+    return "\n".join(md)

@@ -7,7 +7,7 @@ import json
 from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.repositories.scenario_repo import ScenarioRepository
-from app.schemas.user import UserRecord
+from app.models.user import UserRecord
 from app.core.config import settings
 
 # Menggunakan AsyncOpenAI agar non-blocking

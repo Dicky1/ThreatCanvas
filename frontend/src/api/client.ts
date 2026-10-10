@@ -164,6 +164,17 @@ export const api = {
   markNotificationRead: (id: string) => request(`/v1/notifications/${id}/read`, { method: 'PATCH' }),
   clearNotifications: () => request('/v1/notifications', { method: 'DELETE' }),
   exportNavigator: (id: string) => request<any>(`/v1/export/navigator/${id}`),
+  exportReport: async (id: string) => {
+    // using fetch directly since we need text, not JSON parsing
+    const token = localStorage.getItem('tc_token');
+    const response = await fetch(`/api/v1/export/report/markdown/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    if (!response.ok) throw new Error('Failed to fetch report');
+    return await response.text();
+  },
   copilotChat: (id: string, messages: {role: string, content: string}[]) => request<{reply: string}>(`/v1/chat/${id}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -97,6 +97,25 @@ export default function Dashboard() {
     }
   };
 
+  const handleExportReport = async () => {
+    if (!scenarioId) return;
+    try {
+      const markdown = await api.exportReport(scenarioId);
+      const blob = new Blob([markdown], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Executive_Report_${scenarioId.slice(0, 8)}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to export report", err);
+      alert("Gagal mengekspor Laporan Eksekutif.");
+    }
+  };
+
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -239,13 +258,20 @@ export default function Dashboard() {
             <div className="min-h-[700px] space-y-5">
               {cirData ? (
                 <>
-                  <div className="flex justify-end pt-2 pb-4">
+                  <div className="flex justify-end pt-2 pb-4 space-x-3">
+                    <button
+                      onClick={handleExportReport}
+                      className="flex items-center px-4 py-2 bg-gray-800 border border-gray-700 text-sm text-gray-200 rounded-lg hover:bg-gray-700 hover:text-white transition-colors"
+                    >
+                      <Download size={16} className="mr-2" />
+                      Executive Report (MD)
+                    </button>
                     <button
                       onClick={handleExportNavigator}
                       className="flex items-center px-4 py-2 bg-gray-800 border border-gray-700 text-sm text-gray-200 rounded-lg hover:bg-gray-700 hover:text-white transition-colors"
                     >
                       <Download size={16} className="mr-2" />
-                      Export Navigator Layer (JSON)
+                      Navigator Layer (JSON)
                     </button>
                   </div>
                   <ThreatGraph
