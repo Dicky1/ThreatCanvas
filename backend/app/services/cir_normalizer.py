@@ -25,6 +25,11 @@ class CIRNormalizer:
         "collection": "TA0009",
         "exfiltration": "TA0010",
         "command and control": "TA0011",
+        "impact": "TA0040",
+        "reconnaissance": "TA0043",
+        "resource development": "TA0042",
+        "stealth": "TA0005",
+        "defense impairment": "TA0112",
     }
 
     @staticmethod
@@ -42,9 +47,13 @@ class CIRNormalizer:
                 tech_val = str(getattr(node, "technique", "")).lower().strip()
                 if tech_val in CIRNormalizer.TECHNIQUE_MAP:
                     node.technique = CIRNormalizer.TECHNIQUE_MAP[tech_val]
+                else:
+                    node.technique = str(getattr(node, "technique", "")).strip().upper()
+                if str(node.tactic).strip().upper().startswith("TA"):
+                    node.tactic = str(node.tactic).strip().upper()
 
                 # Normalisasi Tactic
-                tact_val = str(getattr(node, "tactic", "")).lower().strip()
+                tact_val = str(getattr(node, "tactic", "")).lower().replace("-", " ").replace("_", " ").strip()
                 if tact_val in CIRNormalizer.TACTIC_MAP:
                     node.tactic = CIRNormalizer.TACTIC_MAP[tact_val]
 

@@ -40,6 +40,8 @@ TACTIC_IDS = {
     "persistence": "TA0003",
     "privilege-escalation": "TA0004",
     "defense-evasion": "TA0005",
+    "stealth": "TA0005",
+    "defense-impairment": "TA0112",
     "credential-access": "TA0006",
     "discovery": "TA0007",
     "lateral-movement": "TA0008",
