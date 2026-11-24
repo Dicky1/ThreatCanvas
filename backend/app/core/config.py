@@ -23,6 +23,21 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     OPENAI_API_KEY: str = ""
     OPENAI_API_BASE: str = "https://ai.sumopod.com/v1"
+
+    # --- LLM providers (any OpenAI-compatible API: OpenAI, Azure, SumoPod,
+    # Ollama, vLLM, LM Studio, ...). Without LLM_PROFILES a single profile is
+    # built from OPENAI_API_BASE / OPENAI_API_KEY / LLM_MODEL / LLM_MODE.
+    LLM_MODEL: str = "gpt-4o"
+    # "tools" = function calling; "json" = JSON mode (for models without
+    # reliable tool calling, e.g. many local Ollama models)
+    LLM_MODE: str = "tools"
+    # JSON list of profiles, e.g.
+    # [{"name":"gpt-4o","base_url":"https://api.openai.com/v1","api_key_env":"OPENAI_API_KEY","model":"gpt-4o","mode":"tools"},
+    #  {"name":"llama3.1-local","base_url":"http://localhost:11434/v1","model":"llama3.1:8b","mode":"json"}]
+    # api_key_env names an environment variable; keys never go in this JSON.
+    LLM_PROFILES: str = ""
+    LLM_DEFAULT_PROFILE: str = ""
+    LLM_TIMEOUT_SECONDS: float = 90.0
     DATABASE_URL: str = "sqlite:///./threatcanvas.db"
 
     SECRET_KEY: str = "CHANGE-THIS-IN-ENV-FILE-TO-A-LONG-RANDOM-STRING"

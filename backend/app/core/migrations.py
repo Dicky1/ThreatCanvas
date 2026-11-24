@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 # (table, column, SQL type) - keep types portable across SQLite and PostgreSQL.
 ADDED_COLUMNS: list[tuple[str, str, str]] = [
     ("scenarios", "owner_id", "VARCHAR"),
+    ("scenarios", "workspace_id", "VARCHAR"),
 ]
 
 

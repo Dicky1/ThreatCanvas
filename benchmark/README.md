@@ -1,5 +1,7 @@
 # ThreatCanvas Benchmark
 
+> **Model comparison:** the maintained benchmark (12 narratives with ATT&CK v20 ground truth) lives in `backend/app/data/benchmark/cases.json` and is run from the UI (Benchmark page) or with `python scripts/run_benchmark.py` in `backend/`. This folder keeps the original offline evaluator and its 3 fixtures.
+
 This folder contains small, reproducible evaluation fixtures for comparing generated CIR outputs against expected ATT&CK mappings and graph order.
 
 ## Layout

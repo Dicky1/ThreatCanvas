@@ -6,7 +6,19 @@ import type {
   ConsensusResult,
   CTIFetchResult,
   DetectionValidationResult,
+  AlertIngestResponse,
+  CIRSpecification,
   ConversionResponse,
+  CtiIngestResponse,
+  DataSourceState,
+  GapAnalysis,
+  InventorySummary,
+  BenchmarkCase,
+  BenchmarkRun as BenchmarkRunInfo,
+  LLMProfileInfo,
+  WorkspaceMemberInfo,
+  WorkspaceRole,
+  WorkspaceSummary,
   DetectionDataset,
   DetectionTarget,
   EvaluationReport,
@@ -135,10 +147,10 @@ export const api = {
     if (!response.ok) throw new ApiError(response.status, 'Backend health check failed');
     return response.json() as Promise<{ status: string }>;
   }),
-  parse: (scenario: string) => request<ParseResponse>('/v1/parse', {
+  parse: (scenario: string, modelProfile?: string | null) => request<ParseResponse>('/v1/parse', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ scenario }),
+    body: JSON.stringify(modelProfile ? { scenario, model_profile: modelProfile } : { scenario }),
   }, LLM_TIMEOUT_MS),
   login: (username: string, password: string) => {
     const body = new URLSearchParams({ username, password });
@@ -153,7 +165,8 @@ export const api = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   }),
-  scenarios: () => request<Scenario[]>('/v1/scenarios'),
+  scenarios: (workspace?: string) => request<Scenario[]>(`/v1/scenarios${workspace ? `?workspace=${encodeURIComponent(workspace)}` : ''}`),
+  scenario: (id: string) => request<Scenario & { cir_graph_data: CIRSpecification }>(`/v1/scenarios/${encodeURIComponent(id)}`),
   coverage: (id: string) => request<CoverageReport>(`/v1/coverage/${id}`),
   analysis: (id: string) => request<GraphAnalysis>(`/v1/graph-analysis/${id}`),
   reasoning: (id: string) => request<Record<string, unknown>>(`/v1/reasoning/${id}`),
@@ -255,4 +268,52 @@ export const api = {
   },
   purpleRuns: (scenarioId: string) => request<PurpleRun[]>(`/v1/purple/runs?scenario_id=${encodeURIComponent(scenarioId)}`),
   deletePurpleRun: (id: string) => request<unknown>(`/v1/purple/runs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  ingestAlerts: (file: File, useLlm: boolean, modelProfile?: string | null) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('use_llm', String(useLlm));
+    if (modelProfile) form.append('model_profile', modelProfile);
+    return request<AlertIngestResponse>('/v1/ingest/alerts', { method: 'POST', body: form }, LLM_TIMEOUT_MS);
+  },
+  ingestCti: (input: { file?: File; url?: string; text?: string }, modelProfile?: string | null) => {
+    const form = new FormData();
+    if (modelProfile) form.append('model_profile', modelProfile);
+    if (input.file) form.append('file', input.file);
+    if (input.url) form.append('url', input.url);
+    if (input.text) form.append('text', input.text);
+    return request<CtiIngestResponse>('/v1/ingest/cti', { method: 'POST', body: form }, LLM_TIMEOUT_MS);
+  },
+  inventorySummary: () => request<InventorySummary>('/v1/coverage-gap/rules'),
+  importInventory: (file: File, replace: boolean) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<{ imported: number; skipped_untagged: number; errors: string[] }>(`/v1/coverage-gap/rules?replace=${replace}`, { method: 'POST', body: form }, UPLOAD_TIMEOUT_MS);
+  },
+  clearInventory: () => request<{ deleted: number }>('/v1/coverage-gap/rules', { method: 'DELETE' }),
+  dataSources: () => request<DataSourceState>('/v1/coverage-gap/data-sources'),
+  saveDataSources: (components: string[]) => request<{ components: string[]; source: string }>('/v1/coverage-gap/data-sources', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ components }),
+  }),
+  importDettect: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<{ components: string[]; source: string; unmatched: string[] }>('/v1/coverage-gap/data-sources/dettect', { method: 'POST', body: form });
+  },
+  gapAnalysis: (id: string) => request<GapAnalysis>(`/v1/coverage-gap/${encodeURIComponent(id)}`),
+  gapNavigator: (id: string) => request<unknown>(`/v1/coverage-gap/${encodeURIComponent(id)}/navigator`),
+  llmProfiles: () => request<{ default: string; profiles: LLMProfileInfo[] }>('/v1/llm/profiles'),
+  workspaces: () => request<WorkspaceSummary[]>('/v1/workspaces'),
+  createWorkspace: (name: string) => request<WorkspaceSummary>('/v1/workspaces', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }),
+  deleteWorkspace: (id: string) => request<{ scenarios_unshared: number }>(`/v1/workspaces/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  workspaceMembers: (id: string) => request<WorkspaceMemberInfo[]>(`/v1/workspaces/${encodeURIComponent(id)}/members`),
+  addWorkspaceMember: (id: string, username: string, role: WorkspaceRole) => request<unknown>(`/v1/workspaces/${encodeURIComponent(id)}/members`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, role }) }),
+  updateWorkspaceMember: (id: string, userId: string, role: WorkspaceRole) => request<unknown>(`/v1/workspaces/${encodeURIComponent(id)}/members/${encodeURIComponent(userId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) }),
+  removeWorkspaceMember: (id: string, userId: string) => request<unknown>(`/v1/workspaces/${encodeURIComponent(id)}/members/${encodeURIComponent(userId)}`, { method: 'DELETE' }),
+  shareScenario: (id: string, workspaceId: string | null) => request<Scenario>(`/v1/scenarios/${encodeURIComponent(id)}/workspace`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspace_id: workspaceId }) }),
+  benchmarkCases: () => request<BenchmarkCase[]>('/v1/benchmark/cases'),
+  startBenchmark: (profiles: string[], caseIds?: string[]) => request<BenchmarkRunInfo>('/v1/benchmark/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profiles, case_ids: caseIds?.length ? caseIds : null }) }),
+  benchmarkRuns: () => request<BenchmarkRunInfo[]>('/v1/benchmark/runs'),
+  benchmarkRun: (id: string) => request<BenchmarkRunInfo>(`/v1/benchmark/runs/${encodeURIComponent(id)}`),
 };
