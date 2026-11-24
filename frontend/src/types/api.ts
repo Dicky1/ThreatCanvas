@@ -63,6 +63,11 @@ export interface Scenario {
   original_input: string;
   created_at: string;
   cir_graph_data?: CIRSpecification;
+  owner_username?: string | null;
+  is_owner?: boolean;
+  workspace_id?: string | null;
+  workspace_name?: string | null;
+  can_edit?: boolean;
 }
 
 export interface CoverageReport {
@@ -296,4 +301,139 @@ export interface BenchmarkReport {
     missing_techniques: string[];
     extra_techniques: string[];
   }>;
+}
+
+export interface RepairAttempt {
+  attempt: number;
+  /** "schema": LLM output was not a valid CIR; "validation": CIR failed ATT&CK/graph/evidence checks. */
+  stage: 'schema' | 'validation';
+  errors: string[];
+}
+
+export interface CIRValidationReport {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  groups?: Record<string, { errors: string[]; passed: boolean }>;
+}
+
+export interface ParseResponse {
+  cir: CIRSpecification;
+  validation: CIRValidationReport;
+  id: string;
+  repair_attempts: RepairAttempt[];
+}
+
+// ---- Detection lab (pySigma conversion + dataset measurement) ----
+export interface DetectionTarget { key: 'splunk' | 'kql' | 'elastic' | 'wazuh'; label: string; language: string; description: string }
+
+export interface ConvertedRule { title: string; rule_id: string | null; techniques: string[]; queries: string[]; error: string | null }
+
+export interface ConversionResponse { target: string; language: string; rules: ConvertedRule[]; errors: string[]; sigma?: string }
+
+export interface DetectionDataset {
+  id: string;
+  name: string;
+  label: 'malicious' | 'benign';
+  technique_ids: string[];
+  source_filename: string | null;
+  event_count: number;
+  created_at: string;
+}
+
+export interface EvaluationRuleReport {
+  title: string;
+  rule_id: string | null;
+  techniques: string[];
+  error: string | null;
+  malicious_hits: number;
+  benign_hits: number;
+  datasets: Array<{ dataset_id: string; name: string; label: string; hits: number; samples: Array<Record<string, unknown>> }>;
+}
+
+export interface EvaluationReport {
+  summary: {
+    rules: number;
+    rules_with_errors: number;
+    malicious_datasets: number;
+    benign_datasets: number;
+    detected_malicious_datasets: number;
+    dataset_recall: number | null;
+    malicious_alerts: number;
+    benign_alerts: number;
+    alert_precision: number | null;
+  };
+  rules: EvaluationRuleReport[];
+  datasets: Array<{ dataset_id: string; name: string; label: string; technique_ids: string[]; event_count: number; alerts: number; detected: boolean; relevant_rules: number }>;
+  techniques: Array<{ technique: string; rules: number; datasets: number; detected_datasets: number }>;
+  truncated: boolean;
+  elapsed_ms: number;
+  sigma: string;
+}
+
+// ---- Purple team loop ----
+export interface AtomicTest { guid: string; test_number: number; name: string; executor: string; platforms: string[] }
+export interface PurplePlanStep { step_id: string; technique: string; technique_name: string | null; tactic: string; tests: AtomicTest[]; from_parent: boolean }
+export interface PurplePlan { platform: string; platforms: string[]; steps: PurplePlanStep[]; coverage: { steps: number; steps_with_tests: number } }
+export type PurpleStatus = 'DETECTED' | 'MISSED' | 'NO_RULE' | 'NOT_EXECUTED' | 'UNVERIFIED';
+export interface PurpleRun {
+  id: string;
+  scenario_id: string;
+  dataset_id: string;
+  dataset_name: string;
+  platform: string | null;
+  summary: { techniques: number; detected: number; missed: number; no_rule: number; not_executed: number; unverified: number; detection_rate: number | null; execution_log: boolean; executions: number; truncated?: boolean };
+  techniques: Array<{ technique: string; technique_name: string | null; tactic: string; rules: number; alerts: number; executed: boolean | null; status: PurpleStatus }>;
+  executions: Array<{ technique: string; guid: string | null; name: string | null; succeeded: boolean; timestamp: string | null }> | null;
+  created_at: string;
+}
+
+// ---- Ingest (alerts / CTI -> CIR) ----
+export interface AlertIngestResponse extends ParseResponse {
+  method: 'deterministic' | 'llm';
+  stats: { alerts: number; alerts_with_techniques: number; skipped_techniques: string[] };
+}
+export interface CtiIngestResponse extends ParseResponse {
+  source: { title: string; location: string; characters: number; truncated: boolean };
+}
+
+// ---- Real gap analysis ----
+export type GapStatus = 'COVERED' | 'COVERED_UNVERIFIED_TELEMETRY' | 'RULE_WITHOUT_TELEMETRY' | 'TELEMETRY_WITHOUT_RULE' | 'BLIND' | 'NO_RULE';
+export interface InventorySummary { rules: number; techniques: number; top_techniques: Array<[string, number]>; files: Array<{ file: string; rules: number }> }
+export interface DataSourceState { configured: boolean; components: string[]; source: 'manual' | 'dettect' | null; catalog: string[] }
+export interface GapAnalysis {
+  techniques: Array<{
+    technique: string;
+    technique_name: string | null;
+    tactic: string;
+    status: GapStatus;
+    existing_rules: Array<{ title: string; match: 'exact' | 'related' }>;
+    existing_rule_count: number;
+    generated_rule_available: boolean;
+    required_data_components: string[];
+    available_data_components: string[];
+    missing_data_components: string[];
+    log_sources: string[];
+  }>;
+  summary: { techniques: number; covered: number; coverage: number | null; blind: number; rule_without_telemetry: number; telemetry_without_rule: number; inventory_rules: number; data_source_profile: boolean };
+  top_missing_data_components: Array<{ data_component: string; techniques: number }>;
+}
+
+// ---- Workspaces / LLM profiles / model benchmark ----
+export type WorkspaceRole = 'owner' | 'editor' | 'viewer';
+export interface WorkspaceSummary { id: string; name: string; role: WorkspaceRole; members: number; scenarios: number; created_at: string }
+export interface WorkspaceMemberInfo { user_id: string; username: string; full_name: string | null; role: WorkspaceRole; you: boolean }
+export interface LLMProfileInfo { name: string; model: string; mode: 'tools' | 'json'; local: boolean }
+export interface BenchmarkCase { id: string; title: string; tags: string[]; narrative: string; expected_techniques: string[] }
+export interface BenchmarkSummary { cases: number; valid_rate: number; exact_f1: number; exact_precision: number; exact_recall: number; parent_f1: number; ordering: number; avg_repair_attempts: number; avg_latency_ms: number; errors: number }
+export interface BenchmarkCaseResult {
+  case_id: string; title: string; status: 'valid' | 'invalid' | 'llm_error' | 'error'; repair_attempts: number; latency_ms: number;
+  exact: { precision: number; recall: number; f1: number }; parent: { precision: number; recall: number; f1: number };
+  ordering: number; predicted: string[]; missing: string[]; extra: string[]; nodes: number; error?: string;
+}
+export interface BenchmarkRun {
+  id: string; status: 'queued' | 'running' | 'done' | 'failed'; profiles: string[]; case_ids: string[] | null;
+  report: { cases: string[]; profiles: Record<string, { summary: BenchmarkSummary; results: BenchmarkCaseResult[] }> } | null;
+  summary?: Record<string, BenchmarkSummary>;
+  error: string | null; created_at: string; finished_at: string | null;
 }

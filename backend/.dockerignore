@@ -1,0 +1,14 @@
+# Never bake local secrets, databases or environments into the image.
+.env
+.env.*
+!.env.example
+*.db
+*.sqlite3
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+tests/
+app/data/enterprise-attack.json

@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -46,6 +47,8 @@ TACTIC_NAMES = {
     "TA0040": "Impact",
 }
 
+logger = logging.getLogger(__name__)
+
 DATA_DIR = Path(__file__).parents[1] / "data"
 DEFAULT_BUNDLE_PATH = DATA_DIR / "enterprise-attack.json"
 # Compact catalog generated from the official bundle by
@@ -62,6 +65,89 @@ class ATTACKTechnique:
     deprecated: bool = False
     version: str | None = None
     parent_id: str | None = None
+    # ATT&CK data components that can observe the technique (e.g. "Process Creation")
+    data_components: tuple[str, ...] = ()
+    # Concrete log sources named by ATT&CK analytics (e.g. "WinEventLog:Sysmon")
+    log_sources: tuple[str, ...] = ()
+    # For revoked techniques: the technique ATT&CK replaced it with
+    revoked_by: str | None = None
+
+
+def revocations(objects: list[dict[str, Any]]) -> dict[str, str]:
+    """Revoked technique id -> replacement id (from revoked-by relationships)."""
+    external = {}
+    for obj in objects:
+        if obj.get("type") == "attack-pattern" and obj.get("id"):
+            for reference in obj.get("external_references", []):
+                if reference.get("source_name") == "mitre-attack" and str(reference.get("external_id", "")).startswith("T"):
+                    external[obj["id"]] = reference["external_id"].upper()
+    mapping = {}
+    for obj in objects:
+        if obj.get("type") == "relationship" and obj.get("relationship_type") == "revoked-by":
+            old, new = external.get(obj.get("source_ref")), external.get(obj.get("target_ref"))
+            if old and new and old != new:
+                mapping[old] = new
+    return mapping
+
+
+def detection_requirements(objects: list[dict[str, Any]]) -> dict[str, dict[str, list[str]]]:
+    """Technique external id -> {"data_components": [...], "log_sources": [...]}.
+
+    Handles every ATT&CK generation:
+    - v18+: detection strategy --detects--> technique; strategy -> analytics ->
+      x_mitre_log_source_references -> data component + log source name
+    - v10-v17: data component --detects--> technique
+    - older: technique.x_mitre_data_sources ("Process: Process Creation")
+    """
+    by_id = {obj.get("id"): obj for obj in objects if obj.get("id")}
+    external = {}
+    for obj in objects:
+        if obj.get("type") == "attack-pattern":
+            for reference in obj.get("external_references", []):
+                if reference.get("source_name") == "mitre-attack" and str(reference.get("external_id", "")).startswith("T"):
+                    external[obj.get("id") or id(obj)] = reference["external_id"].upper()
+    components: dict[str, set[str]] = {}
+    log_sources: dict[str, set[str]] = {}
+
+    def component_name(ref: str | None) -> str | None:
+        component = by_id.get(ref or "")
+        if not component or component.get("revoked") or component.get("x_mitre_deprecated"):
+            return None
+        return component.get("name")
+
+    for obj in objects:
+        key = obj.get("id") or id(obj)
+        if obj.get("type") == "attack-pattern" and key in external:
+            for legacy in obj.get("x_mitre_data_sources", []) or []:
+                name = str(legacy).split(":", 1)[-1].strip()
+                if name:
+                    components.setdefault(external[key], set()).add(name)
+        if obj.get("type") != "relationship" or obj.get("relationship_type") != "detects" or obj.get("revoked"):
+            continue
+        technique = external.get(obj.get("target_ref"))
+        source = by_id.get(obj.get("source_ref"))
+        if not technique or not source:
+            continue
+        if source.get("type") == "x-mitre-data-component":
+            name = component_name(source["id"])
+            if name:
+                components.setdefault(technique, set()).add(name)
+        elif source.get("type") == "x-mitre-detection-strategy" and not source.get("x_mitre_deprecated"):
+            for analytic_ref in source.get("x_mitre_analytic_refs", []) or []:
+                analytic = by_id.get(analytic_ref) or {}
+                for log_source in analytic.get("x_mitre_log_source_references", []) or []:
+                    name = component_name(log_source.get("x_mitre_data_component_ref"))
+                    if name:
+                        components.setdefault(technique, set()).add(name)
+                    if log_source.get("name"):
+                        log_sources.setdefault(technique, set()).add(str(log_source["name"]))
+    return {
+        technique: {
+            "data_components": sorted(components.get(technique, set())),
+            "log_sources": sorted(log_sources.get(technique, set()))[:20],
+        }
+        for technique in set(components) | set(log_sources)
+    }
 
 
 def _tactic_key(name: str) -> str:
@@ -110,12 +196,17 @@ class ATTACKKnowledgeService:
         # Default sources, best first: full local bundle -> committed compact
         # catalog -> tiny built-in list (last resort if data files are missing).
         for kind, path in (("bundle", DEFAULT_BUNDLE_PATH), ("catalog", DEFAULT_CATALOG_PATH)):
-            if path.exists():
+            if not path.exists():
+                continue
+            try:
                 cached = _load_cached(kind, str(path), path.stat().st_mtime)
-                self.techniques = cached.techniques
-                self.version = cached.version
-                self.tactic_names = cached.tactic_names
-                return
+            except (OSError, ValueError) as error:  # corrupt/partial file: try the next source
+                logger.warning("Ignoring unreadable ATT&CK data %s: %s", path, error)
+                continue
+            self.techniques = cached.techniques
+            self.version = cached.version
+            self.tactic_names = cached.tactic_names
+            return
         self._load_compatibility_catalog()
 
     def load_path(self, bundle_path: str | os.PathLike[str]) -> None:
@@ -136,6 +227,9 @@ class ATTACKKnowledgeService:
                 deprecated=bool(entry.get("deprecated")),
                 version=entry.get("version"),
                 parent_id=identifier.split(".")[0].upper() if "." in identifier else None,
+                data_components=tuple(entry.get("data_components", [])),
+                log_sources=tuple(entry.get("log_sources", [])),
+                revoked_by=entry.get("revoked_by"),
             )
             for identifier, entry in techniques.items()
         }
@@ -166,6 +260,8 @@ class ATTACKKnowledgeService:
                     if obj.get("name"):
                         self.tactic_names[identifier] = obj["name"]
 
+        requirements = detection_requirements(bundle.get("objects", []))
+        replaced = revocations(bundle.get("objects", []))
         self.techniques = {}
         for obj in bundle.get("objects", []):
             if obj.get("type") != "attack-pattern":
@@ -191,6 +287,9 @@ class ATTACKKnowledgeService:
                 deprecated=deprecated,
                 version=obj.get("x_mitre_version"),
                 parent_id=obj.get("x_mitre_parent_attack_id"),
+                data_components=tuple(requirements.get(technique_id, {}).get("data_components", [])),
+                log_sources=tuple(requirements.get(technique_id, {}).get("log_sources", [])),
+                revoked_by=replaced.get(technique_id),
             )
             if obj.get("x_mitre_version"):
                 self.version = obj["x_mitre_version"]
@@ -199,6 +298,18 @@ class ATTACKKnowledgeService:
 
     def resolve_technique(self, technique_id: str) -> ATTACKTechnique | None:
         return self.techniques.get(technique_id.strip().upper())
+
+    def current_technique(self, technique_id: str) -> ATTACKTechnique | None:
+        """Follow revoked-by chains to the live replacement (max 5 hops)."""
+        technique = self.resolve_technique(technique_id)
+        for _ in range(5):
+            if technique is None or not technique.revoked_by:
+                break
+            replacement = self.resolve_technique(technique.revoked_by)
+            if replacement is None:
+                break
+            technique = replacement
+        return technique
 
     def resolve_technique_name(self, technique_id: str) -> str | None:
         technique = self.resolve_technique(technique_id)
@@ -235,7 +346,7 @@ class ATTACKKnowledgeService:
             node.technique_name = technique.name
             node.tactic_name = self.tactic_names.get(node.tactic)
             node.attack_version = technique.version or self.version
-            node.attack_data_sources = list(technique.data_sources)
+            node.attack_data_sources = list(technique.data_sources or technique.data_components)
             node.technique_deprecated = technique.deprecated
         return resolved
 

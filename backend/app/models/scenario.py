@@ -15,4 +15,6 @@ class ScenarioRecord(Base):
     # Owning user. Nullable only for rows created before ownership existed;
     # such rows are invisible until adopted (see app.core.migrations).
     owner_id = Column(String, nullable=True, index=True)
+    # Optional team workspace the scenario is shared into (None = personal).
+    workspace_id = Column(String, nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

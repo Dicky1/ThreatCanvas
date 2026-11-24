@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { useNotificationStore } from './useNotificationStore';
 import { api } from '../api/client';
-import type { CIRGraph, CIRSpecification, CoverageReport as ApiCoverageReport } from '../types/api';
+import { ApiError } from '../api/client';
+import type { CIRGraph, CIRSpecification, CoverageReport as ApiCoverageReport, ParseResponse, RepairAttempt } from '../types/api';
 export type { CIRGraph, CIRNode } from '../types/api';
 
 /**
@@ -45,9 +46,16 @@ interface ThreatState {
   error: string | null;
   validation: ValidationResult | null;
   coverageData: CoverageReport | null;
+  /** Self-repair rounds the backend needed (or used before giving up). */
+  repairAttempts: RepairAttempt[];
+  /** Selected LLM profile (null = server default). */
+  modelProfile: string | null;
+  setModelProfile: (profile: string | null) => void;
 
   setScenarioInput: (input: string) => void;
   processScenario: () => Promise<void>;
+  /** Make a CIR produced elsewhere (alert / CTI import) the active scenario. */
+  loadParseResult: (data: ParseResponse, input: string) => Promise<void>;
   fetchArtifacts: (scenarioId: string, type: 'sigma' | 'kql' | 'spl') => Promise<void>;
   fetchCoverage: (scenarioId: string) => Promise<void>;
   reset: () => void;
@@ -56,6 +64,11 @@ interface ThreatState {
 // Helper singkat untuk memotong teks skenario panjang saat dipakai di notifikasi
 function truncate(text: string, maxLength = 60): string {
   return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
+}
+
+const MODEL_KEY = 'tc_model_profile';
+function loadModelProfile(): string | null {
+  try { return localStorage.getItem(MODEL_KEY); } catch { return null; }
 }
 
 export const useThreatStore = create<ThreatState>((set, get) => ({
@@ -69,8 +82,33 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
   error: null,
   validation: null,
   coverageData: null,
+  repairAttempts: [],
+  modelProfile: loadModelProfile(),
+  setModelProfile: (profile) => {
+    try {
+      if (profile) localStorage.setItem(MODEL_KEY, profile); else localStorage.removeItem(MODEL_KEY);
+    } catch { /* storage unavailable: keep in memory only */ }
+    set({ modelProfile: profile });
+  },
 
   setScenarioInput: (input: string) => set({ scenarioInput: input }),
+
+  loadParseResult: async (data: ParseResponse, input: string) => {
+    set({
+      scenarioInput: input,
+      cirData: data.cir.attack_graph,
+      cirSpec: data.cir,
+      scenarioId: data.id,
+      attackVersion: data.cir.attack_version || null,
+      validation: data.validation as unknown as ValidationResult,
+      repairAttempts: data.repair_attempts ?? [],
+      artifacts: {},
+      coverageData: null,
+      error: null,
+      isProcessing: false,
+    });
+    await get().fetchCoverage(data.id);
+  },
 
   processScenario: async () => {
     const { scenarioInput } = get();
@@ -85,16 +123,18 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
       artifacts: {},
       validation: null,
       coverageData: null,
+      repairAttempts: [],
     });
 
     try {
-      const data = await api.parse(scenarioInput);
+      const data = await api.parse(scenarioInput, get().modelProfile);
       set({
         cirData: data.cir.attack_graph,
         cirSpec: data.cir,
         scenarioId: data.id,
         attackVersion: data.cir.attack_version || null,
         validation: data.validation as unknown as ValidationResult,
+        repairAttempts: data.repair_attempts ?? [],
         isProcessing: false,
       });
 
@@ -107,8 +147,16 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
       // Auto-fetch coverage setelah proses berhasil
       await get().fetchCoverage(data.id);
     } catch (err: any) {
-      const message = err.message || 'Error saat memproses skenario.';
-      set({ error: message, isProcessing: false });
+      let message = err.message || 'Error saat memproses skenario.';
+      const detail = err instanceof ApiError ? err.detail : undefined;
+      if (detail && typeof detail === 'object' && 'repair_attempts' in detail) {
+        // Validation still failed after self-repair: surface the report.
+        const failed = detail as { validation?: ValidationResult; repair_attempts: RepairAttempt[] };
+        message = `CIR masih gagal validasi setelah ${failed.repair_attempts.length} percobaan (termasuk self-repair).`;
+        set({ error: message, isProcessing: false, validation: failed.validation ?? null, repairAttempts: failed.repair_attempts });
+      } else {
+        set({ error: message, isProcessing: false });
+      }
 
       useNotificationStore.getState().addNotification({
         title: 'Gagal memproses skenario',
@@ -182,5 +230,6 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
       error: null,
       validation: null,
       coverageData: null,
+      repairAttempts: [],
     }),
 }));
