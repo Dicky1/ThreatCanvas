@@ -18,13 +18,19 @@ from app.schemas.cir import CIRSpecification
 from app.services.detection_lab import LabDataset, evaluate
 from app.services.log_datasets import MAX_UPLOAD_BYTES, DatasetError, parse_dataset
 from app.services.sigma_compiler import SigmaCompiler
-from app.services.sigma_conversion import MAX_SIGMA_CHARS, TARGETS, SigmaConversionError, convert
+from app.services.sigma_conversion import (
+    MAX_SIGMA_CHARS,
+    TARGETS,
+    SigmaConversionError,
+    convert,
+)
 
 router = APIRouter(prefix="/detection", tags=["Detection Lab"])
 logger = logging.getLogger(__name__)
 
 MAX_DATASETS_PER_USER = 50
 MAX_DATASETS_PER_EVALUATION = 20
+MAX_EVENTS_PER_EVALUATION = 200_000  # bounds memory: events are loaded and indexed in RAM
 TECHNIQUE_RE = re.compile(r"^T\d{4}(\.\d{3})?$")
 
 
@@ -115,7 +121,7 @@ def list_datasets(db: Session = Depends(get_db), current_user: UserRecord = Depe
 
 
 @router.post("/datasets", status_code=201)
-async def upload_dataset(
+def upload_dataset(
     file: UploadFile = File(...),
     name: str = Form(..., min_length=1, max_length=120),
     label: Literal["malicious", "benign"] = Form(...),
@@ -131,7 +137,8 @@ async def upload_dataset(
     if count >= MAX_DATASETS_PER_USER:
         raise HTTPException(status_code=400, detail=f"Dataset limit reached ({MAX_DATASETS_PER_USER}); delete some first")
 
-    data = await file.read(MAX_UPLOAD_BYTES + 1)
+    # Sync endpoint (runs in the threadpool): parsing a 50 MB archive must not block the event loop.
+    data = file.file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail=f"File exceeds {MAX_UPLOAD_BYTES // (1024 * 1024)} MB")
     filename = (file.filename or "upload.json").replace("\\", "/").rsplit("/", 1)[-1][:200]
@@ -193,6 +200,12 @@ def evaluate_rules(
     )
     if len(rows) != len(ids):
         raise HTTPException(status_code=404, detail="Dataset not found")
+    total_events = sum(row.event_count or 0 for row in rows)
+    if total_events > MAX_EVENTS_PER_EVALUATION:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Selected datasets hold {total_events:,} events; evaluate at most {MAX_EVENTS_PER_EVALUATION:,} at once",
+        )
     by_id = {row.id: row for row in rows}
     datasets = [
         LabDataset(row.id, row.name, row.label, row.technique_ids or [], row.events or [])

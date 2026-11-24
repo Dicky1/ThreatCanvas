@@ -5,6 +5,7 @@ from app.api.endpoints import parser, compilers, coverage
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.core.migrations import run_migrations
+from app.core.request_limits import BodySizeLimitMiddleware
 from app.models.scenario import ScenarioRecord as _ScenarioRecord  # noqa: F401 – registers table with Base.metadata
 from app.api.endpoints import graph_analysis
 from app.api.endpoints import reasoning
@@ -36,6 +37,7 @@ run_migrations(engine)
 
 app = FastAPI(title="ThreatCanvas AI API", version="1.0.0")
 
+app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5174", "http://localhost:5173"],

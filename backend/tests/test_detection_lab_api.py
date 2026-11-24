@@ -136,3 +136,48 @@ def test_upload_validation(api_client, lab, monkeypatch):
     assert bad.status_code == 400 and "No events" in bad.json()["detail"]
     monkeypatch.setattr(detection_lab, "MAX_UPLOAD_BYTES", 10)
     assert upload(api_client, alice, "big", "benign", BASELINE_EVENTS).status_code == 413
+
+
+def test_evaluation_event_cap(api_client, lab, monkeypatch):
+    alice, scenario_id, attack_id, baseline_id = lab
+    monkeypatch.setattr(detection_lab, "MAX_EVENTS_PER_EVALUATION", 2)
+    response = api_client.post(
+        "/api/v1/detection/evaluate", json={"scenario_id": scenario_id, "dataset_ids": [attack_id, baseline_id]}, headers=alice
+    )
+    assert response.status_code == 400 and "at most 2" in response.json()["detail"]
+
+
+def test_oversized_request_body_is_rejected_before_parsing(api_client, lab):
+    from app.core.request_limits import DEFAULT_MAX_BODY_BYTES
+
+    alice, *_ = lab
+    response = api_client.post(
+        "/api/v1/detection/datasets",
+        content=b"x" * 10,
+        headers={**alice, "Content-Type": "multipart/form-data; boundary=x", "Content-Length": str(DEFAULT_MAX_BODY_BYTES + 1)},
+    )
+    assert response.status_code == 413
+
+
+def test_streamed_body_over_limit_is_rejected():
+    import asyncio
+
+    from app.core.request_limits import BodySizeLimitMiddleware
+
+    async def app(scope, receive, send):
+        while (await receive()).get("more_body"):
+            pass
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await send({"type": "http.response.body", "body": b"ok"})
+
+    chunks = [{"type": "http.request", "body": b"a" * 6, "more_body": True}, {"type": "http.request", "body": b"a" * 6, "more_body": False}]
+    sent = []
+
+    async def receive():
+        return chunks.pop(0)
+
+    async def send(message):
+        sent.append(message)
+
+    asyncio.run(BodySizeLimitMiddleware(app, max_bytes=10)({"type": "http", "headers": []}, receive, send))
+    assert sent[0]["status"] == 413
