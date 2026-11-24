@@ -19,6 +19,7 @@ import Benchmark from './pages/Benchmark';
 import PurpleTeam from './pages/PurpleTeam';
 import ImportAttackData from './pages/ImportAttackData';
 import CoverageGaps from './pages/CoverageGaps';
+import Workspaces from './pages/Workspaces';
 
 /**
  * Entry point routing aplikasi React.
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="purple-team" element={<PurpleTeam />} />
             <Route path="import" element={<ImportAttackData />} />
             <Route path="coverage-gaps" element={<CoverageGaps />} />
+            <Route path="workspaces" element={<Workspaces />} />
             <Route path="simulation" element={<DefenseSimulation />} />
             <Route path="intelligence" element={<ThreatIntelligence />} />
             <Route path="collective-defense" element={<CollectiveDefense />} />

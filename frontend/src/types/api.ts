@@ -63,6 +63,11 @@ export interface Scenario {
   original_input: string;
   created_at: string;
   cir_graph_data?: CIRSpecification;
+  owner_username?: string | null;
+  is_owner?: boolean;
+  workspace_id?: string | null;
+  workspace_name?: string | null;
+  can_edit?: boolean;
 }
 
 export interface CoverageReport {
@@ -412,4 +417,23 @@ export interface GapAnalysis {
   }>;
   summary: { techniques: number; covered: number; coverage: number | null; blind: number; rule_without_telemetry: number; telemetry_without_rule: number; inventory_rules: number; data_source_profile: boolean };
   top_missing_data_components: Array<{ data_component: string; techniques: number }>;
+}
+
+// ---- Workspaces / LLM profiles / model benchmark ----
+export type WorkspaceRole = 'owner' | 'editor' | 'viewer';
+export interface WorkspaceSummary { id: string; name: string; role: WorkspaceRole; members: number; scenarios: number; created_at: string }
+export interface WorkspaceMemberInfo { user_id: string; username: string; full_name: string | null; role: WorkspaceRole; you: boolean }
+export interface LLMProfileInfo { name: string; model: string; mode: 'tools' | 'json'; local: boolean }
+export interface BenchmarkCase { id: string; title: string; tags: string[]; narrative: string; expected_techniques: string[] }
+export interface BenchmarkSummary { cases: number; valid_rate: number; exact_f1: number; exact_precision: number; exact_recall: number; parent_f1: number; ordering: number; avg_repair_attempts: number; avg_latency_ms: number; errors: number }
+export interface BenchmarkCaseResult {
+  case_id: string; title: string; status: 'valid' | 'invalid' | 'llm_error' | 'error'; repair_attempts: number; latency_ms: number;
+  exact: { precision: number; recall: number; f1: number }; parent: { precision: number; recall: number; f1: number };
+  ordering: number; predicted: string[]; missing: string[]; extra: string[]; nodes: number; error?: string;
+}
+export interface BenchmarkRun {
+  id: string; status: 'queued' | 'running' | 'done' | 'failed'; profiles: string[]; case_ids: string[] | null;
+  report: { cases: string[]; profiles: Record<string, { summary: BenchmarkSummary; results: BenchmarkCaseResult[] }> } | null;
+  summary?: Record<string, BenchmarkSummary>;
+  error: string | null; created_at: string; finished_at: string | null;
 }

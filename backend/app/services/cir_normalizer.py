@@ -61,6 +61,12 @@ class CIRNormalizer:
                 # ter-resolve. Ini mencegah output LLM yang memasangkan tactic
                 # valid tetapi tidak sesuai dengan tekniknya (mis. T1486/TA0059).
                 if knowledge is not None:
+                    # Revoked ids (common in model output trained on older
+                    # ATT&CK releases) are mapped to ATT&CK's replacement.
+                    current = knowledge.current_technique(str(node.technique))
+                    if current is not None and current.technique_id != str(node.technique).upper():
+                        node.provenance = f"remapped from revoked {str(node.technique).upper()}"
+                        node.technique = current.technique_id
                     technique = knowledge.resolve_technique(str(node.technique))
                     if technique and technique.tactics and node.tactic not in technique.tactics:
                         node.tactic = technique.tactics[0]

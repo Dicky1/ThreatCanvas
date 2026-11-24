@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.core.database import get_db
+
 from app.api.deps import get_owned_scenario
+from app.core.database import get_db
 from app.models.experiment import ExperimentMetric
 
 router = APIRouter(prefix="/research", tags=["Research"])

@@ -141,7 +141,7 @@ def test_scenario_chat(client, auth, scenario_id, monkeypatch):
         captured.update(kwargs)
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="Block PowerShell."))])
 
-    monkeypatch.setattr(chat.client.chat.completions, "create", fake_create)
+    monkeypatch.setattr(chat, "client_for", lambda profile: SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=fake_create))))
     response = client.post(
         f"/api/v1/chat/{scenario_id}",
         json={"messages": [{"role": "user", "content": "How do I stop this?"}]},

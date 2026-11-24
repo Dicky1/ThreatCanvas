@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { ApiError, api } from '../api/client';
 import type { AlertIngestResponse, CtiIngestResponse, RepairAttempt } from '../types/api';
 import { PageHeader, Panel, StatusBadge } from '../components/common/Primitives';
+import ModelSelect from '../components/ModelSelect';
 import { useThreatStore } from '../store/useThreatStore';
 
 function describeError(reason: unknown): string {
@@ -31,7 +32,7 @@ function CtiPanel() {
     setBusy(true);
     setError(null);
     try {
-      const response = await api.ingestCti(mode === 'url' ? { url } : mode === 'file' && file ? { file } : { text });
+      const response = await api.ingestCti(mode === 'url' ? { url } : mode === 'file' && file ? { file } : { text }, useThreatStore.getState().modelProfile);
       setResult(response);
       await loadParseResult(response, `[CTI report] ${response.source.title || response.source.location}`);
     } catch (reason) {
@@ -82,7 +83,7 @@ function AlertPanel() {
     setBusy(true);
     setError(null);
     try {
-      const response = await api.ingestAlerts(file, useLlm);
+      const response = await api.ingestAlerts(file, useLlm, useThreatStore.getState().modelProfile);
       setResult(response);
       await loadParseResult(response, `[SIEM alerts] ${file.name}`);
     } catch (reason) {
@@ -119,7 +120,7 @@ function AlertPanel() {
 export default function ImportAttackData() {
   return (
     <div className="page-stack">
-      <PageHeader eyebrow="Ingest / Reverse" title="Import Attack Data" description="Start from real data instead of a narrative: CTI reports or SIEM alerts become a CIR scenario you can analyze, detect and simulate." action={<span className="page-icon"><FileInput size={18} /></span>} />
+      <PageHeader eyebrow="Ingest / Reverse" title="Import Attack Data" description="Start from real data instead of a narrative: CTI reports or SIEM alerts become a CIR scenario you can analyze, detect and simulate." action={<div className="inline-actions"><ModelSelect /><span className="page-icon"><FileInput size={18} /></span></div>} />
       <AlertPanel />
       <CtiPanel />
     </div>

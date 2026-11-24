@@ -2,16 +2,14 @@ import json
 import logging
 from dataclasses import dataclass, field
 
-from openai import AsyncOpenAI
 from pydantic import ValidationError
 
-from app.core.config import settings
 from app.schemas.cir import CIRSpecification
+from app.services.llm_client import client_for, get_profile
 
 # Setup logging agar kita tahu apa yang terjadi di balik layar
 logger = logging.getLogger(__name__)
 
-client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_API_BASE)
 
 
 MAX_PREVIOUS_OUTPUT_CHARS = 20_000
@@ -45,6 +43,16 @@ def _schema_errors(error: ValidationError) -> list[str]:
     ]
 
 
+def _strip_fences(text: str) -> str:
+    """Some models wrap JSON in ```json fences even in JSON mode."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else ""
+        if text.rstrip().endswith("```"):
+            text = text.rstrip()[:-3]
+    return text.strip()
+
+
 def _repair_message(repair: RepairContext) -> str:
     issues = "\n".join(f"- {error}" for error in repair.errors[:40])
     return (
@@ -61,6 +69,7 @@ async def parse_narrative_to_cir(
     *,
     repair: RepairContext | None = None,
     instructions: str | None = None,
+    profile: str | None = None,
 ) -> CIRSpecification:
     """
     Core Domain Service: Transforms natural language into CIR via LLM.
@@ -226,30 +235,37 @@ Return ONLY JSON.
         messages.append({"role": "assistant", "content": repair.previous_output[:MAX_PREVIOUS_OUTPUT_CHARS]})
         messages.append({"role": "user", "content": _repair_message(repair)})
 
+    llm = get_profile(profile)
+    request: dict = {"model": llm.model, "messages": messages}
+    if llm.mode == "json":
+        # Models without reliable tool calling: ask for a JSON object that
+        # follows the schema instead.
+        messages.insert(1, {
+            "role": "system",
+            "content": "Respond with ONLY a JSON object (no prose, no markdown) that conforms to this JSON Schema:\n"
+            + json.dumps(cir_schema, separators=(",", ":")),
+        })
+        request["response_format"] = {"type": "json_object"}
+    else:
+        request["tools"] = [{
+            "type": "function",
+            "function": {"name": "generate_cir", "description": "Generate CIR graph", "parameters": cir_schema},
+        }]
+        request["tool_choice"] = {"type": "function", "function": {"name": "generate_cir"}}
+
     try:
-        response = await client.chat.completions.create(
-            model="gpt-4o",  # Pastikan model ini tersedia di SumoPod
-            messages=messages,
-            tools=[
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "generate_cir",
-                        "description": "Generate CIR graph",
-                        "parameters": cir_schema,
-                    },
-                }
-            ],
-            tool_choice={"type": "function", "function": {"name": "generate_cir"}},
-        )
+        response = await client_for(llm).chat.completions.create(**request)
     except Exception as error:
-        logger.error("Error calling LLM: %s", error)
+        logger.error("Error calling LLM profile %s: %s", llm.name, error)
         raise LLMUnavailableError("LLM provider request failed") from error
 
     try:
-        raw_args = response.choices[0].message.tool_calls[0].function.arguments
+        if llm.mode == "json":
+            raw_args = _strip_fences(response.choices[0].message.content or "")
+        else:
+            raw_args = response.choices[0].message.tool_calls[0].function.arguments
     except (AttributeError, IndexError, TypeError) as error:
-        raise CIRGenerationError(["Model did not call generate_cir"], "") from error
+        raise CIRGenerationError(["Model did not return a CIR (no tool call / content)"], "") from error
 
     try:
         parsed_data = json.loads(raw_args)
