@@ -25,6 +25,8 @@ from app.api.endpoints import d3fend
 from app.api.endpoints import detection_lab
 from app.api.endpoints import purple
 from app.api.endpoints import ingest
+from app.api.endpoints import coverage_gap
+from app.models.coverage_gap import InventoryRule as _InventoryRule  # noqa: F401 – registers table with Base.metadata
 from app.models.purple import PurpleRun as _PurpleRun  # noqa: F401 – registers table with Base.metadata
 from app.models.detection import DetectionDataset as _DetectionDataset  # noqa: F401 – registers table with Base.metadata
 from app.models.user import UserRecord as _UserRecord  # noqa: F401 – registers table with Base.metadata
@@ -73,6 +75,7 @@ app.include_router(d3fend.router, prefix="/api/v1", dependencies=protected)
 app.include_router(detection_lab.router, prefix="/api/v1", dependencies=protected)
 app.include_router(purple.router, prefix="/api/v1", dependencies=protected)
 app.include_router(ingest.router, prefix="/api/v1", dependencies=protected)
+app.include_router(coverage_gap.router, prefix="/api/v1", dependencies=protected)
 # simulation.router declares POST /{scenario_id} with NO prefix of its own,
 # i.e. a bare catch-all under /api/v1/. Starlette matches routes in
 # registration order (not by specificity), so this MUST stay registered last

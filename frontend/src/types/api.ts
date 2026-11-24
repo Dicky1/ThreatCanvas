@@ -391,3 +391,25 @@ export interface AlertIngestResponse extends ParseResponse {
 export interface CtiIngestResponse extends ParseResponse {
   source: { title: string; location: string; characters: number; truncated: boolean };
 }
+
+// ---- Real gap analysis ----
+export type GapStatus = 'COVERED' | 'COVERED_UNVERIFIED_TELEMETRY' | 'RULE_WITHOUT_TELEMETRY' | 'TELEMETRY_WITHOUT_RULE' | 'BLIND' | 'NO_RULE';
+export interface InventorySummary { rules: number; techniques: number; top_techniques: Array<[string, number]>; files: Array<{ file: string; rules: number }> }
+export interface DataSourceState { configured: boolean; components: string[]; source: 'manual' | 'dettect' | null; catalog: string[] }
+export interface GapAnalysis {
+  techniques: Array<{
+    technique: string;
+    technique_name: string | null;
+    tactic: string;
+    status: GapStatus;
+    existing_rules: Array<{ title: string; match: 'exact' | 'related' }>;
+    existing_rule_count: number;
+    generated_rule_available: boolean;
+    required_data_components: string[];
+    available_data_components: string[];
+    missing_data_components: string[];
+    log_sources: string[];
+  }>;
+  summary: { techniques: number; covered: number; coverage: number | null; blind: number; rule_without_telemetry: number; telemetry_without_rule: number; inventory_rules: number; data_source_profile: boolean };
+  top_missing_data_components: Array<{ data_component: string; techniques: number }>;
+}

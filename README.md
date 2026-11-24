@@ -60,6 +60,16 @@ The **Import Attack Data** page builds a scenario from real data instead of a wr
 
 ---
 
+## 🎯 Coverage Gaps (real, not theoretical)
+
+The **Coverage Gaps** page compares a scenario with your actual environment, in the spirit of [DeTT&CT](https://github.com/rabobank-cdc/DeTTECT):
+
+- **Existing rules**: import Sigma rules (files or a `.zip` of your rules repo; ATT&CK tags are used) or a CSV (`technique,title`) exported from any SIEM.
+- **Collected data sources**: tick the ATT&CK data components you receive, or import a DeTT&CT data source administration YAML.
+- **Analysis**: each technique is *Covered*, *Rule without data*, *Data without rule* (quick win), or *Blind*, plus the missing data components that would unblock the most techniques and an ATT&CK Navigator layer. Technique → data component / log source mappings come from ATT&CK detection strategies and analytics (v18+) or data components (older releases).
+
+---
+
 ## 🏗️ Architecture
 
 ```mermaid

@@ -10,6 +10,9 @@ import type {
   CIRSpecification,
   ConversionResponse,
   CtiIngestResponse,
+  DataSourceState,
+  GapAnalysis,
+  InventorySummary,
   DetectionDataset,
   DetectionTarget,
   EvaluationReport,
@@ -272,4 +275,24 @@ export const api = {
     if (input.text) form.append('text', input.text);
     return request<CtiIngestResponse>('/v1/ingest/cti', { method: 'POST', body: form }, LLM_TIMEOUT_MS);
   },
+  inventorySummary: () => request<InventorySummary>('/v1/coverage-gap/rules'),
+  importInventory: (file: File, replace: boolean) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<{ imported: number; skipped_untagged: number; errors: string[] }>(`/v1/coverage-gap/rules?replace=${replace}`, { method: 'POST', body: form }, UPLOAD_TIMEOUT_MS);
+  },
+  clearInventory: () => request<{ deleted: number }>('/v1/coverage-gap/rules', { method: 'DELETE' }),
+  dataSources: () => request<DataSourceState>('/v1/coverage-gap/data-sources'),
+  saveDataSources: (components: string[]) => request<{ components: string[]; source: string }>('/v1/coverage-gap/data-sources', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ components }),
+  }),
+  importDettect: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<{ components: string[]; source: string; unmatched: string[] }>('/v1/coverage-gap/data-sources/dettect', { method: 'POST', body: form });
+  },
+  gapAnalysis: (id: string) => request<GapAnalysis>(`/v1/coverage-gap/${encodeURIComponent(id)}`),
+  gapNavigator: (id: string) => request<unknown>(`/v1/coverage-gap/${encodeURIComponent(id)}/navigator`),
 };

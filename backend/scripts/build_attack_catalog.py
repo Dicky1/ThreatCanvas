@@ -18,8 +18,12 @@ calls this automatically after downloading a fresh bundle.
 
 import json
 import sys
+
+sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1]))
 from datetime import UTC, datetime
 from pathlib import Path
+
+from app.services.attack_knowledge import detection_requirements  # noqa: E402
 
 DATA_DIR = Path(__file__).parent.parent / "app" / "data"
 DEFAULT_SOURCE = DATA_DIR / "enterprise-attack.json"
@@ -70,6 +74,7 @@ def build(bundle: dict) -> dict:
     attack_version = None
     techniques: dict[str, dict] = {}
     tactic_ids = _tactic_ids(bundle)
+    requirements = detection_requirements(bundle.get("objects", []))
     tactics_meta = {
         ref_id: name
         for obj in bundle.get("objects", [])
@@ -100,6 +105,8 @@ def build(bundle: dict) -> dict:
             "name": obj.get("name", technique_id),
             "tactics": tactics,
             "data_sources": sorted(set(obj.get("x_mitre_data_sources", []))),
+            "data_components": requirements.get(technique_id, {}).get("data_components", []),
+            "log_sources": requirements.get(technique_id, {}).get("log_sources", []),
             "deprecated": deprecated,
             "version": obj.get("x_mitre_version"),
         }
