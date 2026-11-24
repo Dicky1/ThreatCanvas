@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta, timezone
+
+import jwt
+from jwt.exceptions import PyJWTError
 from passlib.context import CryptContext
-from jose import jwt, JWTError
+
 from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -25,8 +28,13 @@ def create_access_token(subject: str) -> str:
 def decode_access_token(token: str) -> str | None:
     try:
         payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+            token,
+            settings.SECRET_KEY,
+            # Pin the algorithm: never let the token header choose it.
+            algorithms=[settings.ALGORITHM],
+            options={"require": ["exp", "sub"]},
         )
-        return payload.get("sub")
-    except JWTError:
+    except PyJWTError:
         return None
+    subject = payload.get("sub")
+    return subject if isinstance(subject, str) and subject else None

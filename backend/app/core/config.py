@@ -14,6 +14,9 @@ _INSECURE_DEFAULTS = {
 }
 
 
+ALLOWED_JWT_ALGORITHMS = frozenset({"HS256", "HS384", "HS512"})
+
+
 class Settings(BaseSettings):
     PROJECT_NAME: str = "ThreatCanvas AI"
     ENVIRONMENT: str = "development"
@@ -33,6 +36,13 @@ class Settings(BaseSettings):
 
     def validate_security(self) -> None:
         """Dipanggil saat startup — crash early jika konfigurasi tidak aman."""
+        # Token ditandatangani dengan SECRET_KEY simetris: hanya HMAC yang valid.
+        # Mencegah ALGORITHM di-set ke "none" atau algoritma asimetris.
+        if self.ALGORITHM not in ALLOWED_JWT_ALGORITHMS:
+            raise RuntimeError(
+                f"ALGORITHM={self.ALGORITHM!r} tidak didukung; gunakan salah satu dari "
+                f"{sorted(ALLOWED_JWT_ALGORITHMS)}."
+            )
         if self.ENVIRONMENT == "test":
             return
             
