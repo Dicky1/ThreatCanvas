@@ -27,6 +27,7 @@ export default function Dashboard() {
     artifacts,
     fetchArtifacts,
     validation,
+    repairAttempts,
   } = useThreatStore();
 
   // Tambahkan "simulation" ke dalam tipe union activeTab
@@ -41,6 +42,11 @@ export default function Dashboard() {
   const [timeline, setTimeline] = useState<AttackTimeline | null>(null);
 
   const location = useLocation();
+
+  // A parse that failed validation has no graph: jump to the report.
+  useEffect(() => {
+    if (!cirData && validation) setActiveTab("validation");
+  }, [cirData, validation]);
 
   useEffect(() => {
     if (!scenarioId) {
@@ -151,6 +157,13 @@ export default function Dashboard() {
           )}
           Generate Artifacts
         </button>
+
+        {cirData && repairAttempts.length > 0 && (
+          <p className="mt-3 text-amber-300 text-sm flex items-center gap-2">
+            <ShieldCheck size={16} />
+            AI self-repair: CIR diperbaiki otomatis setelah {repairAttempts.length} percobaan gagal validasi. Detail di tab Validation.
+          </p>
+        )}
 
         {error && !cirData && (
           <p className="mt-3 text-red-400 flex items-center">
@@ -485,6 +498,29 @@ export default function Dashboard() {
                     ))}
                   </ul>
                 </>
+              )}
+
+              {repairAttempts.length > 0 && (
+                <div className="mt-5">
+                  <h4 className="text-amber-300 font-semibold mb-2">AI self-repair log</h4>
+                  <ol className="space-y-3">
+                    {repairAttempts.map((attempt) => (
+                      <li key={attempt.attempt} className="rounded-md border border-gray-700 bg-black/20 p-3">
+                        <div className="flex items-center gap-2 mb-1 text-sm">
+                          <StatusBadge tone="warn">Attempt {attempt.attempt}</StatusBadge>
+                          <span className="text-gray-400">
+                            {attempt.stage === "schema" ? "Output AI bukan CIR yang valid" : "CIR gagal validasi"} — dikirim balik ke AI untuk diperbaiki
+                          </span>
+                        </div>
+                        <ul className="list-disc ml-6 text-sm text-gray-300 space-y-1">
+                          {attempt.errors.map((err, index) => (
+                            <li key={index}>{err}</li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
               )}
 
               {validation.warnings && validation.warnings.length > 0 && (

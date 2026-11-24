@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from dataclasses import dataclass, field
 from functools import lru_cache
@@ -45,6 +46,8 @@ TACTIC_NAMES = {
     "TA0010": "Exfiltration",
     "TA0040": "Impact",
 }
+
+logger = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).parents[1] / "data"
 DEFAULT_BUNDLE_PATH = DATA_DIR / "enterprise-attack.json"
@@ -110,12 +113,17 @@ class ATTACKKnowledgeService:
         # Default sources, best first: full local bundle -> committed compact
         # catalog -> tiny built-in list (last resort if data files are missing).
         for kind, path in (("bundle", DEFAULT_BUNDLE_PATH), ("catalog", DEFAULT_CATALOG_PATH)):
-            if path.exists():
+            if not path.exists():
+                continue
+            try:
                 cached = _load_cached(kind, str(path), path.stat().st_mtime)
-                self.techniques = cached.techniques
-                self.version = cached.version
-                self.tactic_names = cached.tactic_names
-                return
+            except (OSError, ValueError) as error:  # corrupt/partial file: try the next source
+                logger.warning("Ignoring unreadable ATT&CK data %s: %s", path, error)
+                continue
+            self.techniques = cached.techniques
+            self.version = cached.version
+            self.tactic_names = cached.tactic_names
+            return
         self._load_compatibility_catalog()
 
     def load_path(self, bundle_path: str | os.PathLike[str]) -> None:

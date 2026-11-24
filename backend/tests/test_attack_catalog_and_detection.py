@@ -172,3 +172,14 @@ tags: [attack.lateral_movement, attack.t1021.001]
     assert result.stage_results["attack_mapping"]
     assert result.metrics.fn == 0
     assert any("No malicious test events" in error for error in result.errors)
+
+
+def test_corrupt_full_bundle_falls_back_to_catalog(tmp_path, monkeypatch):
+    import app.services.attack_knowledge as attack_knowledge
+
+    broken = tmp_path / "enterprise-attack.json"
+    broken.write_text('{"type": "bund', encoding="utf-8")  # interrupted download
+    monkeypatch.setattr(attack_knowledge, "DEFAULT_BUNDLE_PATH", broken)
+    monkeypatch.delenv("ATTACK_STIX_PATH", raising=False)
+    service = ATTACKKnowledgeService()
+    assert len(service.techniques) > 600

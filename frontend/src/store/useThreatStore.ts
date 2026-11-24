@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { useNotificationStore } from './useNotificationStore';
 import { api } from '../api/client';
-import type { CIRGraph, CIRSpecification, CoverageReport as ApiCoverageReport } from '../types/api';
+import { ApiError } from '../api/client';
+import type { CIRGraph, CIRSpecification, CoverageReport as ApiCoverageReport, RepairAttempt } from '../types/api';
 export type { CIRGraph, CIRNode } from '../types/api';
 
 /**
@@ -45,6 +46,8 @@ interface ThreatState {
   error: string | null;
   validation: ValidationResult | null;
   coverageData: CoverageReport | null;
+  /** Self-repair rounds the backend needed (or used before giving up). */
+  repairAttempts: RepairAttempt[];
 
   setScenarioInput: (input: string) => void;
   processScenario: () => Promise<void>;
@@ -69,6 +72,7 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
   error: null,
   validation: null,
   coverageData: null,
+  repairAttempts: [],
 
   setScenarioInput: (input: string) => set({ scenarioInput: input }),
 
@@ -85,6 +89,7 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
       artifacts: {},
       validation: null,
       coverageData: null,
+      repairAttempts: [],
     });
 
     try {
@@ -95,6 +100,7 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
         scenarioId: data.id,
         attackVersion: data.cir.attack_version || null,
         validation: data.validation as unknown as ValidationResult,
+        repairAttempts: data.repair_attempts ?? [],
         isProcessing: false,
       });
 
@@ -107,8 +113,16 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
       // Auto-fetch coverage setelah proses berhasil
       await get().fetchCoverage(data.id);
     } catch (err: any) {
-      const message = err.message || 'Error saat memproses skenario.';
-      set({ error: message, isProcessing: false });
+      let message = err.message || 'Error saat memproses skenario.';
+      const detail = err instanceof ApiError ? err.detail : undefined;
+      if (detail && typeof detail === 'object' && 'repair_attempts' in detail) {
+        // Validation still failed after self-repair: surface the report.
+        const failed = detail as { validation?: ValidationResult; repair_attempts: RepairAttempt[] };
+        message = `CIR masih gagal validasi setelah ${failed.repair_attempts.length} percobaan (termasuk self-repair).`;
+        set({ error: message, isProcessing: false, validation: failed.validation ?? null, repairAttempts: failed.repair_attempts });
+      } else {
+        set({ error: message, isProcessing: false });
+      }
 
       useNotificationStore.getState().addNotification({
         title: 'Gagal memproses skenario',
@@ -182,5 +196,6 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
       error: null,
       validation: null,
       coverageData: null,
+      repairAttempts: [],
     }),
 }));

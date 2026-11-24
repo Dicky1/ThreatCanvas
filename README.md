@@ -96,6 +96,14 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 
 ---
 
+### Docker
+```bash
+docker build -t threatcanvas-backend backend/
+```
+The build downloads the full MITRE ATT&CK Enterprise bundle (pass `--build-arg FETCH_ATTACK_DATA=false` to skip; the committed compact catalog is used instead). The container runs as a non-root user, and `.dockerignore` keeps `.env` and local databases out of the image.
+
+---
+
 ## 🔧 Environment Variables
 
 | Variable | Purpose | Default |
@@ -110,6 +118,7 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 | `ATTACK_STIX_PATH` | Optional local ATT&CK STIX bundle path | Auto-detects local JSON |
 | `CTI_ALLOW_PRIVATE_NETWORKS` | Allow `/cti/fetch` to target RFC1918 private IPs | `false` |
 | `LEGACY_SCENARIO_OWNER` | Username that adopts scenarios created before per-user ownership (empty = auto-adopt only when exactly one user exists) | *empty* |
+| `LLM_REPAIR_ATTEMPTS` | Self-repair rounds: a CIR that fails schema/ATT&CK validation is sent back to the LLM with its errors this many times before `/parse` returns 400 (0 disables) | `2` |
 
 ---
 

@@ -1,5 +1,4 @@
 import type {
-  CIRSpecification,
   CollectiveDefenseResult,
   CoverageReport,
   AttackTimeline,
@@ -8,6 +7,7 @@ import type {
   CTIFetchResult,
   DetectionValidationResult,
   GraphAnalysis,
+  ParseResponse,
   ResearchMetricResult,
   Scenario,
   SimulationResult,
@@ -21,10 +21,13 @@ export const USER_KEY = 'tc_user';
 
 export class ApiError extends Error {
   public readonly status: number;
+  /** Raw `detail` from the backend (may be a structured object). */
+  public readonly detail: unknown;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, detail?: unknown) {
     super(message);
     this.status = status;
+    this.detail = detail;
     this.name = 'ApiError';
   }
 }
@@ -51,9 +54,13 @@ function authHeader(): Record<string, string> {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+const DEFAULT_TIMEOUT_MS = 20_000;
+// LLM-backed calls may run several self-repair rounds.
+export const LLM_TIMEOUT_MS = 180_000;
+
+async function request<T>(path: string, init?: RequestInit, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 20_000);
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
@@ -68,8 +75,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       body = text;
     }
     if (!response.ok) {
-      const detail = typeof body === 'object' && body !== null && 'detail' in body
-        ? formatErrorDetail((body as { detail: unknown }).detail)
+      const rawDetail = typeof body === 'object' && body !== null && 'detail' in body
+        ? (body as { detail: unknown }).detail
+        : undefined;
+      const detail = rawDetail !== undefined
+        ? formatErrorDetail(rawDetail)
         : `Request failed with HTTP ${response.status}`;
       if (response.status === 401) {
         // Token missing/expired/invalid: clear it and let the app react
@@ -82,7 +92,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         }
         window.dispatchEvent(new CustomEvent('tc:unauthorized'));
       }
-      throw new ApiError(response.status, detail);
+      throw new ApiError(response.status, detail, rawDetail);
     }
     return body as T;
   } catch (error) {
@@ -100,11 +110,11 @@ export const api = {
     if (!response.ok) throw new ApiError(response.status, 'Backend health check failed');
     return response.json() as Promise<{ status: string }>;
   }),
-  parse: (scenario: string) => request<{ cir: CIRSpecification; validation: Record<string, unknown>; id: string }>('/v1/parse', {
+  parse: (scenario: string) => request<ParseResponse>('/v1/parse', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ scenario }),
-  }),
+  }, LLM_TIMEOUT_MS),
   login: (username: string, password: string) => {
     const body = new URLSearchParams({ username, password });
     return request<{ access_token: string; user: unknown }>('/v1/auth/login', {
@@ -179,7 +189,7 @@ export const api = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages })
-  }),
+  }, LLM_TIMEOUT_MS),
   d3fend: (id: string) => request<{ remediations: Array<{ technique_id: string, technique_name: string, countermeasures: Array<{ defensive_technique: string, rationale: string, source: string, confidence: number }> }> }>(`/v1/d3fend/${id}`),
 };
 

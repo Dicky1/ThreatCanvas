@@ -297,3 +297,24 @@ export interface BenchmarkReport {
     extra_techniques: string[];
   }>;
 }
+
+export interface RepairAttempt {
+  attempt: number;
+  /** "schema": LLM output was not a valid CIR; "validation": CIR failed ATT&CK/graph/evidence checks. */
+  stage: 'schema' | 'validation';
+  errors: string[];
+}
+
+export interface CIRValidationReport {
+  valid: boolean;
+  errors: string[];
+  warnings: string[];
+  groups?: Record<string, { errors: string[]; passed: boolean }>;
+}
+
+export interface ParseResponse {
+  cir: CIRSpecification;
+  validation: CIRValidationReport;
+  id: string;
+  repair_attempts: RepairAttempt[];
+}
