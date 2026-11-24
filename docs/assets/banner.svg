@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" width="1280" height="360" role="img" aria-labelledby="t d">
+  <title id="t">ThreatCanvas</title>
+  <desc id="d">From attack narrative to tested detections</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#070C16"/>
+      <stop offset="1" stop-color="#162033"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="word" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#E0F2FE"/>
+      <stop offset="0.55" stop-color="#7DD3FC"/>
+      <stop offset="1" stop-color="#A78BFA"/>
+    </linearGradient>
+    <linearGradient id="hot" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F59E0B"/>
+      <stop offset="1" stop-color="#EF4444"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#38BDF8" stroke-opacity="0.07" stroke-width="1"/>
+    </pattern>
+    <radialGradient id="glow" cx="0.2" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#38BDF8" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#38BDF8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1280" height="360" rx="24" fill="url(#bg)"/>
+  <rect width="1280" height="360" rx="24" fill="url(#grid)"/>
+  <rect width="1280" height="360" rx="24" fill="url(#glow)"/>
+  <!-- background attack graph -->
+  <g transform="translate(40 0)">
+  <g stroke="url(#edge)" stroke-opacity="0.35" stroke-width="2" fill="none">
+    <path d="M900 70 L990 130 L1080 90 L1180 150 M990 130 L1010 230 L1120 270 L1200 230 M1010 230 L920 290"/>
+  </g>
+  <g fill="#38BDF8" fill-opacity="0.5">
+    <circle cx="900" cy="70" r="6" fill="#F59E0B" fill-opacity="0.8"/>
+    <circle cx="990" cy="130" r="6"/><circle cx="1080" cy="90" r="5"/><circle cx="1180" cy="150" r="5"/>
+    <circle cx="1010" cy="230" r="6"/><circle cx="1120" cy="270" r="5"/><circle cx="920" cy="290" r="5"/>
+    <circle cx="1200" cy="230" r="8" fill="#EF4444" fill-opacity="0.8"/>
+  </g>
+  </g>
+  <!-- logo mark -->
+  <g transform="translate(88 70) scale(0.86)">
+    <rect x="8" y="8" width="240" height="240" rx="56" fill="#0B1220" stroke="#1F2B40" stroke-width="2"/>
+    <g stroke="#38BDF8" stroke-opacity="0.12" stroke-width="2"><path d="M48 96H208M48 160H208M96 48V208M160 48V208"/></g>
+    <path d="M128 40 L194 66 V122 C194 166 164 198 128 216 C92 198 62 166 62 122 V66 Z" fill="#0B1220" fill-opacity="0.55" stroke="url(#edge)" stroke-width="10" stroke-linejoin="round"/>
+    <g stroke="url(#edge)" stroke-width="7" stroke-linecap="round" fill="none">
+      <path d="M96 92 L134 116 L104 150 L150 172"/><path d="M134 116 L162 98" stroke-opacity="0.6"/>
+    </g>
+    <circle cx="96" cy="92" r="12" fill="url(#hot)"/>
+    <circle cx="134" cy="116" r="11" fill="#38BDF8"/>
+    <circle cx="162" cy="98" r="8" fill="#8B5CF6" fill-opacity="0.8"/>
+    <circle cx="104" cy="150" r="11" fill="#818CF8"/>
+    <circle cx="150" cy="172" r="14" fill="#EF4444"/>
+    <circle cx="150" cy="172" r="22" fill="none" stroke="#EF4444" stroke-opacity="0.45" stroke-width="4"/>
+  </g>
+  <!-- wordmark -->
+  <text x="352" y="176" font-family="'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="92" font-weight="800" letter-spacing="-2" fill="url(#word)">ThreatCanvas</text>
+  <text x="356" y="228" font-family="'Segoe UI', 'Inter', 'Helvetica Neue', Arial, sans-serif" font-size="30" font-weight="500" fill="#CBD5E1">From attack narrative to tested detections.</text>
+  <text x="356" y="276" font-family="'Cascadia Code', 'JetBrains Mono', Consolas, monospace" font-size="19" fill="#7DD3FC" fill-opacity="0.85">CIR graph · MITRE ATT&amp;CK · Sigma → SIEM · Purple team · Coverage gaps</text>
+</svg>
