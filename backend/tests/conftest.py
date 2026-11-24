@@ -12,6 +12,7 @@ from sqlalchemy.pool import StaticPool  # noqa: E402
 
 @pytest.fixture()
 def db_engine():
+    import app.main  # noqa: F401 - registers every model on Base.metadata
     from app.core.database import Base
 
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
