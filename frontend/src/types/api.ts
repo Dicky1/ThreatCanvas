@@ -382,3 +382,12 @@ export interface PurpleRun {
   executions: Array<{ technique: string; guid: string | null; name: string | null; succeeded: boolean; timestamp: string | null }> | null;
   created_at: string;
 }
+
+// ---- Ingest (alerts / CTI -> CIR) ----
+export interface AlertIngestResponse extends ParseResponse {
+  method: 'deterministic' | 'llm';
+  stats: { alerts: number; alerts_with_techniques: number; skipped_techniques: string[] };
+}
+export interface CtiIngestResponse extends ParseResponse {
+  source: { title: string; location: string; characters: number; truncated: boolean };
+}

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Search, ExternalLink, Trash2, Calendar, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'; // Tambahkan import ini
 import { api } from '../api/client';
+import { useThreatStore } from '../store/useThreatStore';
 
 interface Scenario {
   id: string;
@@ -17,6 +18,7 @@ export default function History() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const navigate = useNavigate(); // Inisialisasi navigasi
+  const loadParseResult = useThreatStore((state) => state.loadParseResult);
 
   useEffect(() => {
     api.scenarios()
@@ -45,9 +47,18 @@ export default function History() {
   };
 
   // --- FUNGSI LOAD ---
-  const handleLoad = (item: Scenario) => {
-    // Berpindah ke halaman Dashboard ("/") sambil membawa data skenario (item)
-    navigate('/threat-modeling', { state: { loadedScenario: item } });
+  const handleLoad = async (item: Scenario) => {
+    // Load the stored CIR directly: no LLM re-parse (costly and non-deterministic).
+    try {
+      const scenario = await api.scenario(item.id);
+      await loadParseResult(
+        { cir: scenario.cir_graph_data, id: scenario.id, validation: { valid: true, errors: [], warnings: [] }, repair_attempts: [] },
+        scenario.original_input,
+      );
+      navigate('/threat-modeling');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Gagal memuat skenario.');
+    }
   };
 
   const filteredHistory = history.filter(item => 

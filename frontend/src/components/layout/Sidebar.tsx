@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Activity, Settings, History, Radar, Workflow, FlaskConical, Users, ChevronLeft, ChevronRight, Info, BookOpen, Network, FileSearch, Swords } from 'lucide-react';
+import { Shield, Activity, Settings, History, Radar, Workflow, FlaskConical, Users, ChevronLeft, ChevronRight, Info, BookOpen, Network, FileSearch, Swords, FileInput } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 /**
@@ -11,6 +11,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: 
   const navItems = [
     { icon: Activity, label: 'Dashboard', path: '/' },
     { icon: Workflow, label: 'Threat Modeling', path: '/threat-modeling' },
+    { icon: FileInput, label: 'Import Attack Data', path: '/import' },
     { icon: Network, label: 'Knowledge Graph', path: '/knowledge-graph' },
     { icon: FileSearch, label: 'Detection Engineering', path: '/detection' },
     { icon: Swords, label: 'Purple Team', path: '/purple-team' },

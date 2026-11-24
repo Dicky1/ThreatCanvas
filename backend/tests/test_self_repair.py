@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.api.endpoints import parser
+from app.core import config
 from app.services import llm_parser
 from app.services.llm_parser import CIRGenerationError, LLMUnavailableError, RepairContext
 
@@ -72,7 +73,7 @@ def test_schema_failure_is_repaired(api_client, user, monkeypatch):
 
 
 def test_gives_up_after_configured_attempts(api_client, user, monkeypatch):
-    monkeypatch.setattr(parser.settings, "LLM_REPAIR_ATTEMPTS", 2)
+    monkeypatch.setattr(config.settings, "LLM_REPAIR_ATTEMPTS", 2)
     fake = FakeLLM(cir("T9999"), cir("T9998"), cir("T9997"), cir())
     monkeypatch.setattr(parser, "parse_narrative_to_cir", fake)
     response = parse(api_client, user)
@@ -84,7 +85,7 @@ def test_gives_up_after_configured_attempts(api_client, user, monkeypatch):
 
 
 def test_repair_can_be_disabled(api_client, user, monkeypatch):
-    monkeypatch.setattr(parser.settings, "LLM_REPAIR_ATTEMPTS", 0)
+    monkeypatch.setattr(config.settings, "LLM_REPAIR_ATTEMPTS", 0)
     fake = FakeLLM(cir("T9999"), cir())
     monkeypatch.setattr(parser, "parse_narrative_to_cir", fake)
     assert parse(api_client, user).status_code == 400

@@ -6,7 +6,10 @@ import type {
   ConsensusResult,
   CTIFetchResult,
   DetectionValidationResult,
+  AlertIngestResponse,
+  CIRSpecification,
   ConversionResponse,
+  CtiIngestResponse,
   DetectionDataset,
   DetectionTarget,
   EvaluationReport,
@@ -154,6 +157,7 @@ export const api = {
     body: JSON.stringify(payload),
   }),
   scenarios: () => request<Scenario[]>('/v1/scenarios'),
+  scenario: (id: string) => request<Scenario & { cir_graph_data: CIRSpecification }>(`/v1/scenarios/${encodeURIComponent(id)}`),
   coverage: (id: string) => request<CoverageReport>(`/v1/coverage/${id}`),
   analysis: (id: string) => request<GraphAnalysis>(`/v1/graph-analysis/${id}`),
   reasoning: (id: string) => request<Record<string, unknown>>(`/v1/reasoning/${id}`),
@@ -255,4 +259,17 @@ export const api = {
   },
   purpleRuns: (scenarioId: string) => request<PurpleRun[]>(`/v1/purple/runs?scenario_id=${encodeURIComponent(scenarioId)}`),
   deletePurpleRun: (id: string) => request<unknown>(`/v1/purple/runs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  ingestAlerts: (file: File, useLlm: boolean) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('use_llm', String(useLlm));
+    return request<AlertIngestResponse>('/v1/ingest/alerts', { method: 'POST', body: form }, LLM_TIMEOUT_MS);
+  },
+  ingestCti: (input: { file?: File; url?: string; text?: string }) => {
+    const form = new FormData();
+    if (input.file) form.append('file', input.file);
+    if (input.url) form.append('url', input.url);
+    if (input.text) form.append('text', input.text);
+    return request<CtiIngestResponse>('/v1/ingest/cti', { method: 'POST', body: form }, LLM_TIMEOUT_MS);
+  },
 };

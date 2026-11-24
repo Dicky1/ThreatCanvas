@@ -56,7 +56,12 @@ def _repair_message(repair: RepairContext) -> str:
     )
 
 
-async def parse_narrative_to_cir(narrative: str, *, repair: RepairContext | None = None) -> CIRSpecification:
+async def parse_narrative_to_cir(
+    narrative: str,
+    *,
+    repair: RepairContext | None = None,
+    instructions: str | None = None,
+) -> CIRSpecification:
     """
     Core Domain Service: Transforms natural language into CIR via LLM.
 
@@ -212,10 +217,11 @@ Encryption
 
 Return ONLY JSON.
 """
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": narrative},
-    ]
+    messages = [{"role": "system", "content": system_prompt}]
+    if instructions:
+        # Source-specific guidance (e.g. "this is a CTI report"); still a server-side prompt.
+        messages.append({"role": "system", "content": instructions})
+    messages.append({"role": "user", "content": narrative})
     if repair is not None:
         messages.append({"role": "assistant", "content": repair.previous_output[:MAX_PREVIOUS_OUTPUT_CHARS]})
         messages.append({"role": "user", "content": _repair_message(repair)})

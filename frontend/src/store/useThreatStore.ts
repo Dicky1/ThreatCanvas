@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { useNotificationStore } from './useNotificationStore';
 import { api } from '../api/client';
 import { ApiError } from '../api/client';
-import type { CIRGraph, CIRSpecification, CoverageReport as ApiCoverageReport, RepairAttempt } from '../types/api';
+import type { CIRGraph, CIRSpecification, CoverageReport as ApiCoverageReport, ParseResponse, RepairAttempt } from '../types/api';
 export type { CIRGraph, CIRNode } from '../types/api';
 
 /**
@@ -51,6 +51,8 @@ interface ThreatState {
 
   setScenarioInput: (input: string) => void;
   processScenario: () => Promise<void>;
+  /** Make a CIR produced elsewhere (alert / CTI import) the active scenario. */
+  loadParseResult: (data: ParseResponse, input: string) => Promise<void>;
   fetchArtifacts: (scenarioId: string, type: 'sigma' | 'kql' | 'spl') => Promise<void>;
   fetchCoverage: (scenarioId: string) => Promise<void>;
   reset: () => void;
@@ -75,6 +77,23 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
   repairAttempts: [],
 
   setScenarioInput: (input: string) => set({ scenarioInput: input }),
+
+  loadParseResult: async (data: ParseResponse, input: string) => {
+    set({
+      scenarioInput: input,
+      cirData: data.cir.attack_graph,
+      cirSpec: data.cir,
+      scenarioId: data.id,
+      attackVersion: data.cir.attack_version || null,
+      validation: data.validation as unknown as ValidationResult,
+      repairAttempts: data.repair_attempts ?? [],
+      artifacts: {},
+      coverageData: null,
+      error: null,
+      isProcessing: false,
+    });
+    await get().fetchCoverage(data.id);
+  },
 
   processScenario: async () => {
     const { scenarioInput } = get();

@@ -51,6 +51,15 @@ ThreatCanvas never executes attacks itself. Run exported plans only in an isolat
 
 ---
 
+## 📥 Import Attack Data (reverse direction)
+
+The **Import Attack Data** page builds a scenario from real data instead of a written narrative:
+
+- **SIEM / EDR alerts**: Wazuh `alerts.json`, Elastic Security detection alerts, Microsoft Sentinel / Defender API exports, Splunk ES notables or generic JSON. Alerts carrying ATT&CK technique ids are converted **deterministically** (time-ordered, one step per technique and host, evidence from alert fields); alerts without technique ids can optionally be reconstructed by the LLM.
+- **CTI reports**: a URL, a PDF/HTML file or pasted text is reduced to readable text and turned into a CIR by the LLM (with self-repair). URL fetching only reaches public addresses: the resolved IP is pinned for the connection (no DNS rebinding), every redirect is re-validated, and size and time are capped.
+
+---
+
 ## 🏗️ Architecture
 
 ```mermaid

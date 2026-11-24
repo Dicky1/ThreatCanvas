@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from app.schemas.cti import CTIFetchRequest, CTIFetchResult
-
+from app.services.safe_fetch import is_disallowed_ip
 
 FetchFn = Callable[[str, str | None], dict[str, Any]]
 
@@ -37,11 +37,9 @@ def _is_blocked_ip(ip: ipaddress.IPv4Address | ipaddress.IPv6Address, allow_priv
     # are always blocked. RFC1918 private ranges are blocked by default too,
     # but can be opted back in for deployments with an internal MISP/TAXII
     # server via CTI_ALLOW_PRIVATE_NETWORKS=true.
-    if ip.is_loopback or ip.is_link_local or ip.is_multicast or ip.is_unspecified or ip.is_reserved:
-        return True
-    if ip.is_private and not allow_private:
-        return True
-    return False
+    # Shared with the CTI report fetcher: also refuses CGNAT, IPv4-mapped /
+    # 6to4 / Teredo encodings of internal addresses and other non-global ranges.
+    return is_disallowed_ip(ip, allow_private)
 
 
 def validate_fetch_url(url: str) -> None:

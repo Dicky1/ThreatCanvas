@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_owned_cir, get_owned_scenario
-from app.core.config import settings
 from app.core.database import get_db
 from app.models.experiment import ExperimentMetric
 from app.models.scenario import ScenarioRecord
@@ -14,15 +13,12 @@ from app.models.user import UserRecord
 from app.repositories.scenario_repo import ScenarioRepository
 from app.schemas.cir import CIRSpecification, Evidence
 from app.services.attack_knowledge import ATTACKKnowledgeService
-from app.services.cir_normalizer import CIRNormalizer  # Import Normalizer baru
-from app.services.cir_validator import CIRValidator
-from app.services.evidence_provenance import EvidenceProvenanceEngine
-from app.services.llm_parser import (
-    CIRGenerationError,
-    LLMUnavailableError,
-    RepairContext,
-    parse_narrative_to_cir,
+from app.services.cir_pipeline import (
+    PipelineResult,
+    PipelineValidationError,
+    generate_cir,
 )
+from app.services.llm_parser import LLMUnavailableError, parse_narrative_to_cir
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -46,14 +42,72 @@ class ParseResponse(BaseModel):
     repair_attempts: list[RepairAttempt] = []
 
 
-def _metric(db: Session, started: float, status: str, **fields) -> None:
+def record_metric(db: Session, started: float, operation: str, status: str, **fields) -> None:
     db.add(ExperimentMetric(
-        operation="parse",
+        operation=operation,
         duration_ms=round((perf_counter() - started) * 1000, 2),
         status=status,
         **fields,
     ))
     db.commit()
+
+
+async def run_llm_pipeline(text: str, generator, db: Session, started: float, operation: str) -> PipelineResult:
+    """generate_cir with the HTTP error mapping shared by every LLM endpoint."""
+    try:
+        return await generate_cir(text, generator, attack_knowledge)
+    except LLMUnavailableError as error:
+        record_metric(db, started, operation, "error", details={"reason": "llm_unavailable"})
+        raise HTTPException(status_code=502, detail="AI provider tidak dapat dihubungi. Coba lagi nanti.") from error
+    except PipelineValidationError as error:
+        record_metric(db, started, operation, "validation_failed", details={"status_code": 400, "attempts": len(error.attempts)})
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": "Validation Failed",
+                "validation": error.validation,
+                "repair_attempts": [a.model_dump() for a in error.attempts],
+            },
+        ) from error
+    except Exception as error:
+        logger.error("Error pada pipeline %s: %s", operation, error, exc_info=True)
+        record_metric(db, started, operation, "error", details={"reason": "internal"})
+        raise HTTPException(status_code=500, detail="Gagal memproses skenario. Terjadi kesalahan internal server.") from error
+
+
+def save_result(
+    db: Session,
+    started: float,
+    operation: str,
+    original_input: str,
+    cir: CIRSpecification,
+    validation: dict,
+    owner_id: str,
+    attempts: list | None = None,
+    extra_details: dict | None = None,
+) -> dict:
+    saved_record = ScenarioRepository(db).save_scenario(
+        original_input=original_input,
+        cir_graph_data=cir.model_dump(mode="json"),
+        owner_id=owner_id,
+    )
+    attempts = attempts or []
+    record_metric(
+        db,
+        started,
+        operation,
+        "success",
+        scenario_id=str(saved_record.id),
+        node_count=len(cir.attack_graph.nodes),
+        edge_count=len(cir.attack_graph.edges),
+        details={"validation_valid": True, "repair_attempts": len(attempts), **(extra_details or {})},
+    )
+    return {
+        "cir": cir,
+        "validation": validation,
+        "id": str(saved_record.id),
+        "repair_attempts": [a.model_dump() for a in attempts],
+    }
 
 
 @router.post("/parse", response_model=ParseResponse)
@@ -64,83 +118,10 @@ async def parse_scenario(
 ):
     if not request.scenario.strip():
         raise HTTPException(status_code=400, detail="Scenario cannot be empty")
-
     started = perf_counter()
-    attempts: list[RepairAttempt] = []
-    repair: RepairContext | None = None
-    cir_graph: CIRSpecification | None = None
-    validation_result: dict = {}
-
-    # 1 initial generation + up to LLM_REPAIR_ATTEMPTS self-repair rounds.
-    for attempt in range(1, settings.LLM_REPAIR_ATTEMPTS + 2):
-        try:
-            if repair is None:
-                candidate = await parse_narrative_to_cir(request.scenario)
-            else:
-                candidate = await parse_narrative_to_cir(request.scenario, repair=repair)
-        except LLMUnavailableError as error:
-            _metric(db, started, "error", details={"reason": "llm_unavailable", "attempts": attempt})
-            raise HTTPException(status_code=502, detail="AI provider tidak dapat dihubungi. Coba lagi nanti.") from error
-        except CIRGenerationError as error:
-            attempts.append(RepairAttempt(attempt=attempt, stage="schema", errors=error.errors))
-            repair = RepairContext(previous_output=error.raw_output, errors=error.errors)
-            continue
-        except Exception as error:
-            logger.error("Error pada pipeline parse: %s", error, exc_info=True)
-            _metric(db, started, "error", details={"reason": "internal"})
-            raise HTTPException(
-                status_code=500,
-                detail="Gagal memproses skenario. Terjadi kesalahan internal server.",
-            ) from error
-
-        # Normalisasi -> provenance -> validasi deterministik
-        try:
-            candidate = CIRNormalizer.normalize(candidate, attack_knowledge)
-            candidate = EvidenceProvenanceEngine.enrich(candidate)
-            validation_result = CIRValidator.validate(candidate, attack_knowledge)
-        except Exception as error:
-            logger.error("Error pada normalisasi/validasi CIR: %s", error, exc_info=True)
-            _metric(db, started, "error", details={"reason": "internal"})
-            raise HTTPException(
-                status_code=500,
-                detail="Gagal memproses skenario. Terjadi kesalahan internal server.",
-            ) from error
-        cir_graph = candidate
-        if validation_result["valid"]:
-            break
-        attempts.append(RepairAttempt(attempt=attempt, stage="validation", errors=validation_result["errors"]))
-        repair = RepairContext(previous_output=candidate.model_dump_json(), errors=validation_result["errors"])
-    else:
-        _metric(db, started, "validation_failed", details={"status_code": 400, "attempts": len(attempts)})
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "message": "Validation Failed",
-                "validation": validation_result,
-                "repair_attempts": [a.model_dump() for a in attempts],
-            },
-        )
-
-    saved_record = ScenarioRepository(db).save_scenario(
-        original_input=request.scenario,
-        cir_graph_data=cir_graph.model_dump(mode="json"),
-        owner_id=current_user.id,
-    )
-    _metric(
-        db,
-        started,
-        "success",
-        scenario_id=str(saved_record.id),
-        node_count=len(cir_graph.attack_graph.nodes),
-        edge_count=len(cir_graph.attack_graph.edges),
-        details={"validation_valid": True, "repair_attempts": len(attempts)},
-    )
-    return {
-        "cir": cir_graph,
-        "validation": validation_result,
-        "id": str(saved_record.id),
-        "repair_attempts": attempts,
-    }
+    # Looked up at call time so tests can substitute the LLM.
+    result = await run_llm_pipeline(request.scenario, parse_narrative_to_cir, db, started, "parse")
+    return save_result(db, started, "parse", request.scenario, result.cir, result.validation, current_user.id, result.attempts)
 
 
 @router.get("/scenarios")

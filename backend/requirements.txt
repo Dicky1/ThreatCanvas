@@ -24,3 +24,4 @@ pysigma-pipeline-windows==2.0.1
 evtx==0.15.0
 regex==2026.11.23
 PyYAML==6.0.3
+pypdf==7.1.1
