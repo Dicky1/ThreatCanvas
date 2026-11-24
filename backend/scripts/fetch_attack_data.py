@@ -17,6 +17,9 @@ use a different location or a pinned/offline copy instead, set the
 `ATTACK_STIX_PATH` environment variable to point at it.
 """
 
+import json
+import os
+import shutil
 import sys
 import urllib.request
 from pathlib import Path
@@ -31,9 +34,18 @@ DEST_PATH = Path(__file__).parent.parent / "app" / "data" / "enterprise-attack.j
 def main() -> None:
     print(f"Downloading ATT&CK Enterprise STIX bundle from:\n  {SOURCE_URL}")
     DEST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    partial = DEST_PATH.with_suffix(".json.part")
     try:
-        urllib.request.urlretrieve(SOURCE_URL, DEST_PATH)
+        with urllib.request.urlopen(SOURCE_URL, timeout=120) as response, partial.open("wb") as out:  # noqa: S310 - fixed https URL
+            shutil.copyfileobj(response, out)
+        # Only replace the existing file with a complete, parseable bundle.
+        with partial.open(encoding="utf-8") as stream:
+            bundle = json.load(stream)
+        if bundle.get("type") != "bundle" or not bundle.get("objects"):
+            raise ValueError("downloaded file is not an ATT&CK STIX bundle")
+        os.replace(partial, DEST_PATH)
     except Exception as exc:  # noqa: BLE001 - surface any network/IO failure to the user
+        partial.unlink(missing_ok=True)
         print(f"Download failed: {exc}", file=sys.stderr)
         sys.exit(1)
 

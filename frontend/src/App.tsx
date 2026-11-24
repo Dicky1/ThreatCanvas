@@ -16,6 +16,7 @@ import ResearchMetrics from './pages/ResearchMetrics';
 import About from './pages/About';
 import KnowledgeGraph from './pages/KnowledgeGraph';
 import Benchmark from './pages/Benchmark';
+import PurpleTeam from './pages/PurpleTeam';
 
 /**
  * Entry point routing aplikasi React.
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="attack-graph" element={<AttackGraphPage />} />
             <Route path="knowledge-graph" element={<KnowledgeGraph />} />
             <Route path="detection" element={<DetectionEngineering />} />
+            <Route path="purple-team" element={<PurpleTeam />} />
             <Route path="simulation" element={<DefenseSimulation />} />
             <Route path="intelligence" element={<ThreatIntelligence />} />
             <Route path="collective-defense" element={<CollectiveDefense />} />

@@ -15,6 +15,9 @@ from app.services.attack_knowledge import TACTIC_IDS, ATTACKKnowledgeService
 # KQL (Defender XDR) / SPL column -> event keys in the Sysmon-style fixtures.
 QUERY_FIELD_TO_EVENT = {
     "filename": ("Image", "TargetFilename"),
+    "folderpath": ("Image", "TargetFilename"),
+    "initiatingprocessfolderpath": ("ParentImage",),
+    "initiatingprocesscommandline": ("ParentCommandLine",),
     "processcommandline": ("CommandLine",),
     "sha256": ("Hashes",),
     "registrykey": ("TargetObject",),
@@ -22,7 +25,7 @@ QUERY_FIELD_TO_EVENT = {
     "remoteip": ("DestinationIp",),
     "remoteurl": ("DestinationHostname",),
 }
-IGNORED_QUERY_FIELDS = {"tactic", "technique", "stepid", "step_id", "sourcetype", "index", "message"}
+IGNORED_QUERY_FIELDS = {"tactic", "technique", "stepid", "step_id", "sourcetype", "source", "index", "message", "eventcode"}
 
 
 class DetectionValidationService:
@@ -179,7 +182,7 @@ class DetectionValidationService:
         elif artifact_type == "kql":
             valid = bool(re.search(r"\b[A-Za-z][A-Za-z0-9_]*\b", parsed))
         else:
-            valid = "index=" in parsed or "sourcetype=" in parsed
+            valid = any(marker in parsed for marker in ("index=", "sourcetype=", "source="))
         if not valid:
             errors.append("Telemetry requirements are not satisfied")
         return valid

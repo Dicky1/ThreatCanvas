@@ -57,4 +57,11 @@ class CIRValidator:
 
         # Final Status
         report["valid"] = all(group["passed"] for group in report["groups"].values())
+        # Flat view for clients (and for the LLM self-repair prompt).
+        report["errors"] = [
+            f"{name}: {error}"
+            for name, group in report["groups"].items()
+            for error in group["errors"]
+        ]
+        report["warnings"] = []
         return report

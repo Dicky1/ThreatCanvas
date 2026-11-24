@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,10 @@ class Settings(BaseSettings):
     # Set ke false untuk menonaktifkan endpoint /api/v1/auth/register.
     # Di produksi, daftarkan user pertama lalu matikan registrasi terbuka.
     ALLOW_REGISTRATION: bool = True
+
+    # Self-repair: how many times a CIR that fails validation is sent back to
+    # the LLM with its errors before /parse gives up (0 disables repair).
+    LLM_REPAIR_ATTEMPTS: int = Field(default=2, ge=0, le=5)
 
     # Username that adopts scenarios created before per-user ownership existed.
     # Empty = adopt automatically only when exactly one user exists.
