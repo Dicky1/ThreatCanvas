@@ -365,3 +365,20 @@ export interface EvaluationReport {
   elapsed_ms: number;
   sigma: string;
 }
+
+// ---- Purple team loop ----
+export interface AtomicTest { guid: string; test_number: number; name: string; executor: string; platforms: string[] }
+export interface PurplePlanStep { step_id: string; technique: string; technique_name: string | null; tactic: string; tests: AtomicTest[]; from_parent: boolean }
+export interface PurplePlan { platform: string; platforms: string[]; steps: PurplePlanStep[]; coverage: { steps: number; steps_with_tests: number } }
+export type PurpleStatus = 'DETECTED' | 'MISSED' | 'NO_RULE' | 'NOT_EXECUTED' | 'UNVERIFIED';
+export interface PurpleRun {
+  id: string;
+  scenario_id: string;
+  dataset_id: string;
+  dataset_name: string;
+  platform: string | null;
+  summary: { techniques: number; detected: number; missed: number; no_rule: number; not_executed: number; unverified: number; detection_rate: number | null; execution_log: boolean; executions: number; truncated?: boolean };
+  techniques: Array<{ technique: string; technique_name: string | null; tactic: string; rules: number; alerts: number; executed: boolean | null; status: PurpleStatus }>;
+  executions: Array<{ technique: string; guid: string | null; name: string | null; succeeded: boolean; timestamp: string | null }> | null;
+  created_at: string;
+}

@@ -39,6 +39,18 @@ Uploads are limited to 50 MB (250 MB uncompressed, 50k events) and parsed in mem
 
 ---
 
+## 🟣 Purple Team Loop
+
+The **Purple Team** page closes the loop between a scenario and real telemetry:
+
+1. **Plan**: every CIR technique is mapped to [Atomic Red Team](https://github.com/redcanaryco/atomic-red-team) tests (bundled index, MIT, see `backend/app/data/ATOMIC_RED_TEAM_LICENSE.txt`; parent-technique fallback for sub-techniques).
+2. **Export**: an Invoke-AtomicRedTeam PowerShell script, or a **Caldera** bundle (abilities + adversary profile). Caldera's atomic plugin derives ability ids from a hash of each test, so the bundle ships its own abilities that call `Invoke-AtomicTest` on the agent.
+3. **Import results**: pick the telemetry captured during the run (a Detection Lab dataset) and optionally the execution log (Invoke-AtomicTest CSV or Caldera operation report). Each technique is reported as *Detected*, *Missed*, *No rule*, *Not executed* or *Unverified*.
+
+ThreatCanvas never executes attacks itself. Run exported plans only in an isolated lab you are authorized to test. Refresh the index with `python scripts/build_atomic_index.py <atomic-red-team checkout>`.
+
+---
+
 ## 🏗️ Architecture
 
 ```mermaid

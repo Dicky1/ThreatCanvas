@@ -12,6 +12,8 @@ import type {
   EvaluationReport,
   GraphAnalysis,
   ParseResponse,
+  PurplePlan,
+  PurpleRun,
   ResearchMetricResult,
   Scenario,
   SimulationResult,
@@ -109,6 +111,23 @@ async function request<T>(path: string, init?: RequestInit, timeoutMs = DEFAULT_
   } finally {
     window.clearTimeout(timeout);
   }
+}
+
+/** Authenticated request returning a file (Blob) plus its suggested filename. */
+async function requestFile(path: string, init?: RequestInit): Promise<{ blob: Blob; filename: string }> {
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers: { ...authHeader(), ...init?.headers } });
+  if (!response.ok) {
+    let detail = `Request failed with HTTP ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body && 'detail' in body) detail = formatErrorDetail(body.detail);
+    } catch { /* non-JSON error body */ }
+    if (response.status === 401) window.dispatchEvent(new CustomEvent('tc:unauthorized'));
+    throw new ApiError(response.status, detail);
+  }
+  const disposition = response.headers.get('content-disposition') || '';
+  const filename = /filename="([^"]+)"/.exec(disposition)?.[1] || 'download';
+  return { blob: await response.blob(), filename };
 }
 
 export const api = {
@@ -220,4 +239,20 @@ export const api = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   }, UPLOAD_TIMEOUT_MS),
+  purplePlan: (id: string, platform: string) => request<PurplePlan>(`/v1/purple/plan/${encodeURIComponent(id)}?platform=${encodeURIComponent(platform)}`),
+  exportPurple: (id: string, payload: { format: 'invoke-atomic' | 'caldera'; platform: string; test_guids: string[] }) => requestFile(`/v1/purple/export/${encodeURIComponent(id)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }),
+  createPurpleRun: (payload: { scenarioId: string; datasetId: string; platform: string; executionLog?: File | null }) => {
+    const form = new FormData();
+    form.append('scenario_id', payload.scenarioId);
+    form.append('dataset_id', payload.datasetId);
+    form.append('platform', payload.platform);
+    if (payload.executionLog) form.append('execution_log', payload.executionLog);
+    return request<PurpleRun>('/v1/purple/runs', { method: 'POST', body: form }, UPLOAD_TIMEOUT_MS);
+  },
+  purpleRuns: (scenarioId: string) => request<PurpleRun[]>(`/v1/purple/runs?scenario_id=${encodeURIComponent(scenarioId)}`),
+  deletePurpleRun: (id: string) => request<unknown>(`/v1/purple/runs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };
