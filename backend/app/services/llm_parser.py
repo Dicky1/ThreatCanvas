@@ -48,6 +48,12 @@ TA0008
 TA0009
 TA0010
 TA0011
+TA0040 (Impact)
+TA0042 (Resource Development)
+TA0043 (Reconnaissance)
+TA0112 (Defense Impairment)
+
+Note: in current ATT&CK, TA0005 is named "Stealth" (formerly Defense Evasion).
 
 NEVER output
 

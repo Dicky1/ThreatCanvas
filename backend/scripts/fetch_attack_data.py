@@ -1,8 +1,9 @@
 """Downloads the official MITRE ATT&CK Enterprise STIX 2.1 bundle.
 
-This unlocks full ATT&CK technique/sub-technique validation (600+ techniques)
-instead of the small ~44-technique compatibility catalog that ships as a
-built-in fallback in `app/services/attack_knowledge.py`.
+A compact catalog of every Enterprise technique (`app/data/attack_catalog.json`)
+is already committed, so this is only needed to refresh to a newer ATT&CK
+release or to get the full STIX objects. After downloading it also rebuilds
+the compact catalog via `scripts/build_attack_catalog.py`.
 
 The downloaded file is intentionally NOT committed to git (it is ~50MB and
 regenerable) - see .gitignore. Run this once after cloning, or whenever you
@@ -38,6 +39,12 @@ def main() -> None:
 
     size_mb = DEST_PATH.stat().st_size / (1024 * 1024)
     print(f"Saved to {DEST_PATH} ({size_mb:.1f} MB)")
+
+    # Refresh the committed compact catalog from the new bundle.
+    sys.path.insert(0, str(Path(__file__).parent))
+    import build_attack_catalog
+
+    build_attack_catalog.main(DEST_PATH)
 
 
 if __name__ == "__main__":

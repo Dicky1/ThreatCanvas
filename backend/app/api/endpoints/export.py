@@ -4,8 +4,15 @@ from app.core.database import get_db
 from app.api.deps import get_current_user
 from app.repositories.scenario_repo import ScenarioRepository
 from app.models.user import UserRecord
+from app.services.attack_knowledge import ATTACKKnowledgeService
 
 router = APIRouter(prefix="/export", tags=["Export"])
+
+def _attack_major_version() -> str:
+    version = ATTACKKnowledgeService().version
+    major = str(version).split(".")[0]
+    return major if major.isdigit() else "17"
+
 
 @router.get("/navigator/{scenario_id}")
 def export_mitre_navigator_layer(
@@ -36,8 +43,7 @@ def export_mitre_navigator_layer(
         if tech_id and tech_id.startswith("T"):
             # Jika sudah ada di map, kita bisa append komentar atau step_id
             step_id = node.get("step_id", "?")
-            tech_name = node.get("technique_name", "")
-            
+
             if tech_id not in techniques_map:
                 techniques_map[tech_id] = {
                     "techniqueID": tech_id,
@@ -50,9 +56,10 @@ def export_mitre_navigator_layer(
                 techniques_map[tech_id]["comment"] += f", {step_id}"
 
     layer = {
-        "name": f"ThreatCanvas - {scenario.name or scenario_id}",
+        "name": f"ThreatCanvas - {scenario_id}",
         "versions": {
-            "attack": "14",
+            # Navigator expects the major ATT&CK version, e.g. "20".
+            "attack": _attack_major_version(),
             "navigator": "4.9.1",
             "layer": "4.5"
         },
@@ -117,7 +124,8 @@ def export_executive_report(
     md.append(f"**Generated**: {date_str}\n")
     
     md.append(f"## 1. Threat Narrative")
-    md.append(f"> {scenario.original_input.strip()}\n")
+    md.extend(f"> {line}" for line in scenario.original_input.strip().splitlines())
+    md.append("")
     
     md.append(f"## 2. Attack Graph Summary")
     md.append(f"- **Total Attack Steps (Nodes)**: {len(nodes)}")
@@ -143,9 +151,10 @@ def export_executive_report(
             # Sort by risk score descending, take top 5
             top_risks = sorted(analysis.asset_risk_signals, key=lambda x: getattr(x, "risk_score", 0), reverse=True)[:5]
             for risk in top_risks:
-                md.append(f"- **Asset**: `{getattr(risk, 'asset_id', 'Unknown')}` (Risk Score: {getattr(risk, 'risk_score', 0)})")
-                if getattr(risk, "missing_controls", None):
-                    md.append(f"  - Missing Controls: {', '.join(risk.missing_controls)}")
+                md.append(
+                    f"- **Asset**: `{risk.asset}` (step `{risk.node_id}`, "
+                    f"Risk Score: {risk.risk_score}, Crown-jewel exposure: {risk.crown_jewel_exposure})"
+                )
             md.append("\n")
     
     md.append(f"---\n*Report generated automatically by ThreatCanvas AI.*")

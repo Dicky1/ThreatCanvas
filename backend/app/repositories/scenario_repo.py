@@ -28,6 +28,16 @@ class ScenarioRepository:
     def get_by_id(self, scenario_id: str) -> Scenario | None:
         return self.db.query(Scenario).filter(Scenario.id == scenario_id).first()
 
+    def get_scenario(self, scenario_id: str, user_id: str | None = None) -> Scenario | None:
+        """Fetch a scenario for the requesting user.
+
+        `user_id` is accepted so callers already pass the requester; scenarios
+        have no owner column yet, so it is not used for filtering. Once
+        per-user ownership lands, filter on it here and every caller
+        (export, chat, d3fend) gets scoping for free.
+        """
+        return self.get_by_id(scenario_id)
+
     def get_cir(self, scenario_id: str) -> CIRSpecification | None:
         scenario = self.db.query(Scenario).filter(Scenario.id == scenario_id).first()
         if scenario and scenario.cir_graph_data:

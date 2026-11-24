@@ -15,6 +15,7 @@ class ThreatReasoningEngine:
             "Persistence": 15,
             "Privilege Escalation": 15,
             "Defense Evasion": 20,
+            "Defense Impairment": 20,
             "Credential Access": 25,
             "Discovery": 10,
             "Lateral Movement": 20,
@@ -29,7 +30,8 @@ class ThreatReasoningEngine:
             "TA0002": "Execution",
             "TA0003": "Persistence",
             "TA0004": "Privilege Escalation",
-            "TA0005": "Defense Evasion",
+            "TA0005": "Defense Evasion",  # named "Stealth" since ATT&CK v18
+            "TA0112": "Defense Impairment",
             "TA0006": "Credential Access",
             "TA0007": "Discovery",
             "TA0008": "Lateral Movement",
