@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { api, TOKEN_KEY, USER_KEY } from '../api/client';
+import { useThreatStore } from './useThreatStore';
 
 /**
  * Struktur data user yang dikembalikan backend (tanpa password)
@@ -59,6 +60,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
       localStorage.setItem(TOKEN_KEY, data.access_token);
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
+      // Scenarios are private per user: never carry another account's
+      // active scenario across a login.
+      useThreatStore.getState().reset();
 
       set({
         token: data.access_token,
@@ -96,6 +100,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   logout: () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    useThreatStore.getState().reset();
     set({ token: null, user: null });
   },
 

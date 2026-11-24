@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
+from app.api.deps import get_owned_scenario
 from app.core.database import get_db
-
 from app.models.scenario import ScenarioRecord
 from app.schemas.simulation import SimulationRequest, SimulationResult
 from app.schemas.cir import CIRSpecification
@@ -28,6 +28,7 @@ async def run_attack_simulation(
     request: SimulationRequest,
     db: Session = Depends(get_db),
     opt_engine: DefenseOptimizationEngine = Depends(get_optimization_engine),
+    scenario: ScenarioRecord = Depends(get_owned_scenario),
 ):
     """
     Menjalankan What-If Analysis dengan memotong teknik yang diblokir dari Attack Graph
@@ -35,12 +36,7 @@ async def run_attack_simulation(
     """
 
     started = perf_counter()
-    # 1. Ambil data scenario dari DB
-    scenario = db.query(ScenarioRecord).filter(ScenarioRecord.id == scenario_id).first()
-
-    if not scenario:
-        raise HTTPException(status_code=404, detail="Scenario not found")
-
+    # 1. Scenario milik user sudah di-resolve oleh get_owned_scenario
     if not scenario.cir_graph_data:
         raise HTTPException(
             status_code=400, detail="CIR Graph Data not found for this scenario"

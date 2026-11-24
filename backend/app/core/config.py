@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     # Di produksi, daftarkan user pertama lalu matikan registrasi terbuka.
     ALLOW_REGISTRATION: bool = True
 
+    # Username that adopts scenarios created before per-user ownership existed.
+    # Empty = adopt automatically only when exactly one user exists.
+    LEGACY_SCENARIO_OWNER: str = ""
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     def validate_security(self) -> None:

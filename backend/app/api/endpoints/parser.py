@@ -5,7 +5,10 @@ from app.services.cir_validator import CIRValidator
 from app.services.cir_normalizer import CIRNormalizer  # Import Normalizer baru
 from app.services.attack_knowledge import ATTACKKnowledgeService
 
+from app.api.deps import get_current_user, get_owned_cir, get_owned_scenario
 from app.core.database import get_db
+from app.models.scenario import ScenarioRecord
+from app.models.user import UserRecord
 from app.schemas.cir import CIRSpecification, Evidence
 from app.services.evidence_provenance import EvidenceProvenanceEngine
 from app.services.llm_parser import parse_narrative_to_cir
@@ -29,7 +32,11 @@ class ParseResponse(BaseModel):
 
 
 @router.post("/parse", response_model=ParseResponse)
-async def parse_scenario(request: ParseRequest, db: Session = Depends(get_db)):
+async def parse_scenario(
+    request: ParseRequest,
+    db: Session = Depends(get_db),
+    current_user: UserRecord = Depends(get_current_user),
+):
     if not request.scenario.strip():
         raise HTTPException(status_code=400, detail="Scenario cannot be empty")
 
@@ -63,6 +70,7 @@ async def parse_scenario(request: ParseRequest, db: Session = Depends(get_db)):
         saved_record = repo.save_scenario(
             original_input=request.scenario,
             cir_graph_data=cir_graph.model_dump(mode="json"),
+            owner_id=current_user.id,
         )
 
         db.add(ExperimentMetric(scenario_id=str(saved_record.id), operation="parse", duration_ms=round((perf_counter() - started) * 1000, 2), status="success", node_count=len(cir_graph.attack_graph.nodes), edge_count=len(cir_graph.attack_graph.edges), details={"validation_valid": validation_result.get("valid", False)}))
@@ -84,28 +92,20 @@ async def parse_scenario(request: ParseRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/scenarios")
-def get_all_scenarios(db: Session = Depends(get_db)):
-    repo = ScenarioRepository(db)
-    return repo.get_all()
+def get_all_scenarios(
+    db: Session = Depends(get_db),
+    current_user: UserRecord = Depends(get_current_user),
+):
+    return ScenarioRepository(db).list_for_owner(current_user.id)
 
 
 @router.get("/scenarios/{scenario_id}")
-def get_scenario(scenario_id: str, db: Session = Depends(get_db)):
-    repo = ScenarioRepository(db)
-    scenario = repo.get_by_id(scenario_id)
-
-    if scenario is None:
-        raise HTTPException(status_code=404, detail="Scenario not found")
-
+def get_scenario(scenario: ScenarioRecord = Depends(get_owned_scenario)):
     return scenario
 
 
 @router.get("/scenarios/{scenario_id}/evidence", response_model=list[Evidence])
-def get_scenario_evidence(scenario_id: str, db: Session = Depends(get_db)):
-    cir = ScenarioRepository(db).get_cir(scenario_id)
-    if cir is None:
-        raise HTTPException(status_code=404, detail="Scenario not found")
-
+def get_scenario_evidence(cir: CIRSpecification = Depends(get_owned_cir)):
     return [
         evidence
         for node in cir.attack_graph.nodes
@@ -114,11 +114,11 @@ def get_scenario_evidence(scenario_id: str, db: Session = Depends(get_db)):
 
 
 @router.delete("/scenarios/{scenario_id}")
-def delete_scenario(scenario_id: str, db: Session = Depends(get_db)):
-    repo = ScenarioRepository(db)
-    deleted = repo.delete(scenario_id)
-
-    if not deleted:
+def delete_scenario(
+    scenario_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserRecord = Depends(get_current_user),
+):
+    if not ScenarioRepository(db).delete(scenario_id, current_user.id):
         raise HTTPException(status_code=404, detail="Scenario not found")
-
     return {"message": "Scenario deleted successfully"}

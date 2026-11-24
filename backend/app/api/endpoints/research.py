@@ -1,13 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
+from app.api.deps import get_owned_scenario
 from app.models.experiment import ExperimentMetric
 
 router = APIRouter(prefix="/research", tags=["Research"])
 
 
 @router.get("/metrics/{scenario_id}")
-def get_metrics(scenario_id: str, db: Session = Depends(get_db)):
+def get_metrics(
+    scenario_id: str,
+    db: Session = Depends(get_db),
+    _owned=Depends(get_owned_scenario),
+):
     rows = db.query(ExperimentMetric).filter(
         ExperimentMetric.scenario_id == scenario_id
     ).order_by(ExperimentMetric.created_at.asc()).all()
