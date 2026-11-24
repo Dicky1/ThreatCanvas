@@ -95,7 +95,7 @@ def _run_payload(run: PurpleRun) -> dict:
 
 
 @router.post("/runs", status_code=201)
-async def create_run(
+def create_run(
     scenario_id: str = Form(...),
     dataset_id: str = Form(...),
     platform: Platform = Form(default="windows"),
@@ -116,7 +116,8 @@ async def create_run(
 
     executions = None
     if execution_log is not None and execution_log.filename:
-        data = await execution_log.read(MAX_EXECUTION_LOG_BYTES + 1)
+        # Sync endpoint (threadpool): evaluating a 50k-event dataset must not block the event loop.
+        data = execution_log.file.read(MAX_EXECUTION_LOG_BYTES + 1)
         try:
             executions = parse_execution_log(execution_log.filename, data)
         except PurpleTeamError as error:
