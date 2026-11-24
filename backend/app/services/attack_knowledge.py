@@ -69,6 +69,25 @@ class ATTACKTechnique:
     data_components: tuple[str, ...] = ()
     # Concrete log sources named by ATT&CK analytics (e.g. "WinEventLog:Sysmon")
     log_sources: tuple[str, ...] = ()
+    # For revoked techniques: the technique ATT&CK replaced it with
+    revoked_by: str | None = None
+
+
+def revocations(objects: list[dict[str, Any]]) -> dict[str, str]:
+    """Revoked technique id -> replacement id (from revoked-by relationships)."""
+    external = {}
+    for obj in objects:
+        if obj.get("type") == "attack-pattern" and obj.get("id"):
+            for reference in obj.get("external_references", []):
+                if reference.get("source_name") == "mitre-attack" and str(reference.get("external_id", "")).startswith("T"):
+                    external[obj["id"]] = reference["external_id"].upper()
+    mapping = {}
+    for obj in objects:
+        if obj.get("type") == "relationship" and obj.get("relationship_type") == "revoked-by":
+            old, new = external.get(obj.get("source_ref")), external.get(obj.get("target_ref"))
+            if old and new and old != new:
+                mapping[old] = new
+    return mapping
 
 
 def detection_requirements(objects: list[dict[str, Any]]) -> dict[str, dict[str, list[str]]]:
@@ -210,6 +229,7 @@ class ATTACKKnowledgeService:
                 parent_id=identifier.split(".")[0].upper() if "." in identifier else None,
                 data_components=tuple(entry.get("data_components", [])),
                 log_sources=tuple(entry.get("log_sources", [])),
+                revoked_by=entry.get("revoked_by"),
             )
             for identifier, entry in techniques.items()
         }
@@ -241,6 +261,7 @@ class ATTACKKnowledgeService:
                         self.tactic_names[identifier] = obj["name"]
 
         requirements = detection_requirements(bundle.get("objects", []))
+        replaced = revocations(bundle.get("objects", []))
         self.techniques = {}
         for obj in bundle.get("objects", []):
             if obj.get("type") != "attack-pattern":
@@ -268,6 +289,7 @@ class ATTACKKnowledgeService:
                 parent_id=obj.get("x_mitre_parent_attack_id"),
                 data_components=tuple(requirements.get(technique_id, {}).get("data_components", [])),
                 log_sources=tuple(requirements.get(technique_id, {}).get("log_sources", [])),
+                revoked_by=replaced.get(technique_id),
             )
             if obj.get("x_mitre_version"):
                 self.version = obj["x_mitre_version"]
@@ -276,6 +298,18 @@ class ATTACKKnowledgeService:
 
     def resolve_technique(self, technique_id: str) -> ATTACKTechnique | None:
         return self.techniques.get(technique_id.strip().upper())
+
+    def current_technique(self, technique_id: str) -> ATTACKTechnique | None:
+        """Follow revoked-by chains to the live replacement (max 5 hops)."""
+        technique = self.resolve_technique(technique_id)
+        for _ in range(5):
+            if technique is None or not technique.revoked_by:
+                break
+            replacement = self.resolve_technique(technique.revoked_by)
+            if replacement is None:
+                break
+            technique = replacement
+        return technique
 
     def resolve_technique_name(self, technique_id: str) -> str | None:
         technique = self.resolve_technique(technique_id)

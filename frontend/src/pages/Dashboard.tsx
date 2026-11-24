@@ -9,6 +9,7 @@ import AttackSimulationView from "../components/AttackSimulationView";
 import AttackTimelinePlayer from "../components/AttackTimelinePlayer";
 import ScenarioChat from "../components/ScenarioChat";
 import D3fendCopilot from "../components/D3fendCopilot";
+import ModelSelect from "../components/ModelSelect";
 import { useLocation } from "react-router-dom";
 import { api } from "../api/client";
 import { StatusBadge } from "../components/common/Primitives";
@@ -145,10 +146,11 @@ export default function Dashboard() {
           onChange={(e) => setScenarioInput(e.target.value)}
         />
 
+        <div className="mt-4 flex flex-wrap items-center gap-4">
         <button
           onClick={processScenario}
           disabled={isProcessing}
-          className="mt-4 flex items-center px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+          className="flex items-center px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
         >
           {isProcessing ? (
             <Loader2 className="animate-spin mr-2" />
@@ -157,6 +159,8 @@ export default function Dashboard() {
           )}
           Generate Artifacts
         </button>
+        <ModelSelect />
+        </div>
 
         {cirData && repairAttempts.length > 0 && (
           <p className="mt-3 text-amber-300 text-sm flex items-center gap-2">

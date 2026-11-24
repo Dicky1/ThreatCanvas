@@ -70,6 +70,26 @@ The **Coverage Gaps** page compares a scenario with your actual environment, in 
 
 ---
 
+## 🤖 LLM providers (model-agnostic)
+
+Any OpenAI-compatible API works: OpenAI, Azure OpenAI, SumoPod, **Ollama**, vLLM, LM Studio. Without extra config a single profile is built from `OPENAI_API_BASE`, `OPENAI_API_KEY`, `LLM_MODEL` and `LLM_MODE`. To offer several models (users pick one in the UI), set `LLM_PROFILES`:
+
+```env
+LLM_PROFILES=[{"name":"gpt-4o","base_url":"https://api.openai.com/v1","api_key_env":"OPENAI_API_KEY","model":"gpt-4o","mode":"tools"},{"name":"llama3.1-local","base_url":"http://localhost:11434/v1","model":"llama3.1:8b","mode":"json"}]
+```
+
+`api_key_env` names an environment variable, so keys never appear in the JSON. `mode: "json"` uses JSON mode instead of function calling for models with unreliable tool support. A malformed `LLM_PROFILES` stops the backend at startup.
+
+## 👥 Workspaces
+
+Scenarios are private by default. Create a workspace (**Workspaces** page), add colleagues as *owner*, *editor* or *viewer*, and share scenarios into it from the **Scenarios** page. Viewers can analyze; editors can also share and delete; owners manage members. Deleting a workspace returns its scenarios to their creators. Datasets, rule inventories and purple-team runs stay personal.
+
+## 📏 Model benchmark
+
+The **Benchmark** page (or `python scripts/run_benchmark.py -p <profile> ...` in `backend/`) runs 12 bundled narratives (ransomware, web shell, Kerberoasting, cloud takeover, supply chain, insider, Linux cryptominer, BEC, living-off-the-land, macOS infostealer, ...) through the full pipeline for each selected model and reports valid-CIR rate, technique precision/recall/F1 (exact and parent-level), step ordering, self-repair attempts and latency. Ground truth uses current ATT&CK ids; revoked ids in model output (e.g. T1562.001 → T1685) are mapped to their replacements before scoring.
+
+---
+
 ## 🏗️ Architecture
 
 ```mermaid

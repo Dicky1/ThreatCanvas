@@ -20,7 +20,7 @@ describe('ImportAttackData', () => {
     const input = screen.getByLabelText(/Alert export/);
     fireEvent.change(input, { target: { files: [new File(['[]'], 'alerts.json', { type: 'application/json' })] } });
     fireEvent.click(screen.getAllByRole('button', { name: 'Build attack graph' })[0]);
-    await waitFor(() => expect(ingest).toHaveBeenCalledWith(expect.any(File), false));
+    await waitFor(() => expect(ingest).toHaveBeenCalledWith(expect.any(File), false, null));
     expect(await screen.findByText('2 attack steps from 4 alerts')).toBeInTheDocument();
     expect(screen.getByText('DETERMINISTIC')).toBeInTheDocument();
     expect(useThreatStore.getState().scenarioId).toBe('scn-9');

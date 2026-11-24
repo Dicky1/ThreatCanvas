@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Activity, Settings, History, Radar, Workflow, FlaskConical, Users, ChevronLeft, ChevronRight, Info, BookOpen, Network, FileSearch, Swords, FileInput, ShieldQuestion } from 'lucide-react';
+import { Shield, Activity, Settings, History, Radar, Workflow, FlaskConical, Users, ChevronLeft, ChevronRight, Info, BookOpen, Network, FileSearch, Swords, FileInput, ShieldQuestion, UsersRound } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 /**
@@ -23,6 +23,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: 
   ];
   const secondaryItems = [
     { icon: History, label: 'Scenarios', path: '/history' },
+    { icon: UsersRound, label: 'Workspaces', path: '/workspaces' },
     { icon: BookOpen, label: 'Prompt Library', path: '/library' },
     { icon: Settings, label: 'Settings', path: '/settings' },
     { icon: Info, label: 'About / Research', path: '/about' },

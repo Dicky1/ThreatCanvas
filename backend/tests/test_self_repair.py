@@ -119,29 +119,34 @@ def run(coro):
     return asyncio.run(coro)
 
 
+def use_completions(monkeypatch, completions):
+    fake_client = SimpleNamespace(chat=SimpleNamespace(completions=completions))
+    monkeypatch.setattr(llm_parser, "client_for", lambda profile: fake_client)
+    return completions
+
+
 def test_invalid_json_raises_generation_error(monkeypatch):
-    monkeypatch.setattr(llm_parser.client.chat, "completions", FakeCompletions("{not json"))
+    use_completions(monkeypatch, FakeCompletions("{not json"))
     with pytest.raises(CIRGenerationError) as error:
         run(llm_parser.parse_narrative_to_cir("x"))
     assert error.value.raw_output == "{not json"
 
 
 def test_schema_mismatch_lists_field_paths(monkeypatch):
-    monkeypatch.setattr(llm_parser.client.chat, "completions", FakeCompletions(json.dumps({"scenario_id": "x"})))
+    use_completions(monkeypatch, FakeCompletions(json.dumps({"scenario_id": "x"})))
     with pytest.raises(CIRGenerationError) as error:
         run(llm_parser.parse_narrative_to_cir("x"))
     assert any(e.startswith("attack_graph") for e in error.value.errors)
 
 
 def test_provider_error_becomes_llm_unavailable(monkeypatch):
-    monkeypatch.setattr(llm_parser.client.chat, "completions", FakeCompletions(error=RuntimeError("401 bad key")))
+    use_completions(monkeypatch, FakeCompletions(error=RuntimeError("401 bad key")))
     with pytest.raises(LLMUnavailableError):
         run(llm_parser.parse_narrative_to_cir("x"))
 
 
 def test_repair_context_is_sent_back_to_the_model(monkeypatch):
-    completions = FakeCompletions(cir().model_dump_json())
-    monkeypatch.setattr(llm_parser.client.chat, "completions", completions)
+    completions = use_completions(monkeypatch, FakeCompletions(cir().model_dump_json()))
     run(llm_parser.parse_narrative_to_cir("narrative", repair=RepairContext("PREVIOUS", ["MITRE: Unknown T9999"])))
     messages = completions.calls[0]["messages"]
     assert [m["role"] for m in messages] == ["system", "user", "assistant", "user"]

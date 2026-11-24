@@ -10,6 +10,7 @@ from starlette.concurrency import run_in_threadpool
 from app.api.deps import get_current_user
 from app.api.endpoints.parser import (
     attack_knowledge,
+    llm_generator,
     record_metric,
     run_llm_pipeline,
     save_result,
@@ -40,9 +41,9 @@ MAX_ALERT_FILE_BYTES = 20 * 1024 * 1024
 MAX_PASTED_TEXT = 200_000
 
 
-def _generator(instructions: str):
-    # Resolved at call time so tests can substitute the LLM.
-    return partial(llm_parser.parse_narrative_to_cir, instructions=instructions)
+def _generator(instructions: str, profile: str | None):
+    # llm_parser.parse_narrative_to_cir is resolved at call time so tests can substitute it.
+    return llm_generator(llm_parser.parse_narrative_to_cir, profile, instructions)
 
 
 async def _read_limited(upload: UploadFile, limit: int) -> bytes:
@@ -56,6 +57,7 @@ async def _read_limited(upload: UploadFile, limit: int) -> bytes:
 async def ingest_alerts(
     file: UploadFile = File(...),
     use_llm: bool = Form(default=False),
+    model_profile: str | None = Form(default=None, max_length=64),
     db: Session = Depends(get_db),
     current_user: UserRecord = Depends(get_current_user),
 ):
@@ -92,7 +94,7 @@ async def ingest_alerts(
             detail="None of the alerts carries a known ATT&CK technique id. Enable 'Reconstruct with AI' to let the LLM infer the attack chain.",
         )
     digest = alerts_narrative(conversion.alerts)
-    result = await run_llm_pipeline(digest, _generator(ALERT_LLM_INSTRUCTIONS), db, started, "ingest_alerts")
+    result = await run_llm_pipeline(digest, _generator(ALERT_LLM_INSTRUCTIONS, model_profile), db, started, "ingest_alerts")
     response = save_result(db, started, "ingest_alerts", original_input, result.cir, result.validation, current_user.id,
                            result.attempts, extra_details={"method": "llm", **stats})
     return {**response, "method": "llm", "stats": stats}
@@ -103,6 +105,7 @@ async def ingest_cti(
     file: UploadFile | None = File(default=None),
     url: str | None = Form(default=None, max_length=2000),
     text: str | None = Form(default=None, max_length=MAX_PASTED_TEXT),
+    model_profile: str | None = Form(default=None, max_length=64),
     db: Session = Depends(get_db),
     current_user: UserRecord = Depends(get_current_user),
 ):
@@ -134,7 +137,7 @@ async def ingest_cti(
         raise HTTPException(status_code=400, detail=str(error)) from error
 
     llm_text, truncated = truncate_for_llm(body)
-    result = await run_llm_pipeline(llm_text, _generator(CTI_LLM_INSTRUCTIONS), db, started, "ingest_cti")
+    result = await run_llm_pipeline(llm_text, _generator(CTI_LLM_INSTRUCTIONS, model_profile), db, started, "ingest_cti")
     header = f"[CTI report] {title or source}\nSource: {source}"
     original_input = f"{header}\n\n{body[:4000]}"
     response = save_result(db, started, "ingest_cti", original_input, result.cir, result.validation, current_user.id,

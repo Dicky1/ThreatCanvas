@@ -1,41 +1,70 @@
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from app.api.deps import get_current_user
-from app.api.endpoints import parser, compilers, coverage
+from app.api.endpoints import (
+    auth,
+    benchmark,
+    chat,
+    collective,
+    compilers,
+    consensus,
+    coverage,
+    coverage_gap,
+    cti,
+    d3fend,
+    detection_lab,
+    export,
+    graph_analysis,
+    ingest,
+    llm,
+    notifications,
+    parser,
+    purple,
+    reasoning,
+    research,
+    simulation,
+    stix,
+    timeline,
+    workspaces,
+)
 from app.core.config import settings
-from app.core.database import engine, Base
+from app.core.database import Base, engine
 from app.core.migrations import run_migrations
 from app.core.request_limits import BodySizeLimitMiddleware
-from app.models.scenario import ScenarioRecord as _ScenarioRecord  # noqa: F401 – registers table with Base.metadata
-from app.api.endpoints import graph_analysis
-from app.api.endpoints import reasoning
-from app.api.endpoints import auth
-from app.api.endpoints import simulation
-from app.api.endpoints import stix
-from app.api.endpoints import collective
-from app.api.endpoints import research
-from app.api.endpoints import benchmark
-from app.api.endpoints import cti
-from app.api.endpoints import consensus
-from app.api.endpoints import timeline
-from app.api.endpoints import notifications
-from app.api.endpoints import export
-from app.api.endpoints import chat
-from app.api.endpoints import d3fend
-from app.api.endpoints import detection_lab
-from app.api.endpoints import purple
-from app.api.endpoints import ingest
-from app.api.endpoints import coverage_gap
-from app.models.coverage_gap import InventoryRule as _InventoryRule  # noqa: F401 – registers table with Base.metadata
-from app.models.purple import PurpleRun as _PurpleRun  # noqa: F401 – registers table with Base.metadata
-from app.models.detection import DetectionDataset as _DetectionDataset  # noqa: F401 – registers table with Base.metadata
-from app.models.user import UserRecord as _UserRecord  # noqa: F401 – registers table with Base.metadata
-from app.models.experiment import ExperimentMetric as _ExperimentMetric  # noqa: F401 – registers table with Base.metadata
-from app.models.notification import NotificationRecord as _NotificationRecord  # noqa: F401 – registers table with Base.metadata
+from app.models.benchmark_run import (
+    BenchmarkRun as _BenchmarkRun,  # noqa: F401 – registers table with Base.metadata
+)
+from app.models.coverage_gap import (
+    InventoryRule as _InventoryRule,  # noqa: F401 – registers table with Base.metadata
+)
+from app.models.detection import (
+    DetectionDataset as _DetectionDataset,  # noqa: F401 – registers table with Base.metadata
+)
+from app.models.experiment import (
+    ExperimentMetric as _ExperimentMetric,  # noqa: F401 – registers table with Base.metadata
+)
+from app.models.notification import (
+    NotificationRecord as _NotificationRecord,  # noqa: F401 – registers table with Base.metadata
+)
+from app.models.purple import (
+    PurpleRun as _PurpleRun,  # noqa: F401 – registers table with Base.metadata
+)
+from app.models.scenario import (
+    ScenarioRecord as _ScenarioRecord,  # noqa: F401 – registers table with Base.metadata
+)
+from app.models.user import (
+    UserRecord as _UserRecord,  # noqa: F401 – registers table with Base.metadata
+)
+from app.models.workspace import (
+    Workspace as _Workspace,  # noqa: F401 – registers table with Base.metadata
+)
+from app.services.llm_client import validate_configuration as validate_llm_configuration
 
 # Crash early jika SECRET_KEY tidak aman. Ini mencegah server berjalan
 # dengan kunci default yang membuat seluruh JWT bisa dipalsukan.
 settings.validate_security()
+validate_llm_configuration()  # fail fast on a malformed LLM_PROFILES
 
 Base.metadata.create_all(bind=engine)
 run_migrations(engine)
@@ -76,6 +105,8 @@ app.include_router(detection_lab.router, prefix="/api/v1", dependencies=protecte
 app.include_router(purple.router, prefix="/api/v1", dependencies=protected)
 app.include_router(ingest.router, prefix="/api/v1", dependencies=protected)
 app.include_router(coverage_gap.router, prefix="/api/v1", dependencies=protected)
+app.include_router(llm.router, prefix="/api/v1", dependencies=protected)
+app.include_router(workspaces.router, prefix="/api/v1", dependencies=protected)
 # simulation.router declares POST /{scenario_id} with NO prefix of its own,
 # i.e. a bare catch-all under /api/v1/. Starlette matches routes in
 # registration order (not by specificity), so this MUST stay registered last
