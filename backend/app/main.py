@@ -5,6 +5,7 @@ from app.api.endpoints import parser, compilers, coverage
 from app.core.config import settings
 from app.core.database import engine, Base
 from app.core.migrations import run_migrations
+from app.core.request_limits import BodySizeLimitMiddleware
 from app.models.scenario import ScenarioRecord as _ScenarioRecord  # noqa: F401 – registers table with Base.metadata
 from app.api.endpoints import graph_analysis
 from app.api.endpoints import reasoning
@@ -21,6 +22,10 @@ from app.api.endpoints import notifications
 from app.api.endpoints import export
 from app.api.endpoints import chat
 from app.api.endpoints import d3fend
+from app.api.endpoints import detection_lab
+from app.api.endpoints import purple
+from app.models.purple import PurpleRun as _PurpleRun  # noqa: F401 – registers table with Base.metadata
+from app.models.detection import DetectionDataset as _DetectionDataset  # noqa: F401 – registers table with Base.metadata
 from app.models.user import UserRecord as _UserRecord  # noqa: F401 – registers table with Base.metadata
 from app.models.experiment import ExperimentMetric as _ExperimentMetric  # noqa: F401 – registers table with Base.metadata
 from app.models.notification import NotificationRecord as _NotificationRecord  # noqa: F401 – registers table with Base.metadata
@@ -34,6 +39,7 @@ run_migrations(engine)
 
 app = FastAPI(title="ThreatCanvas AI API", version="1.0.0")
 
+app.add_middleware(BodySizeLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5174", "http://localhost:5173"],
@@ -63,6 +69,8 @@ app.include_router(notifications.router, prefix="/api/v1", dependencies=protecte
 app.include_router(export.router, prefix="/api/v1", dependencies=protected)
 app.include_router(chat.router, prefix="/api/v1", dependencies=protected)
 app.include_router(d3fend.router, prefix="/api/v1", dependencies=protected)
+app.include_router(detection_lab.router, prefix="/api/v1", dependencies=protected)
+app.include_router(purple.router, prefix="/api/v1", dependencies=protected)
 # simulation.router declares POST /{scenario_id} with NO prefix of its own,
 # i.e. a bare catch-all under /api/v1/. Starlette matches routes in
 # registration order (not by specificity), so this MUST stay registered last

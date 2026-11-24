@@ -28,6 +28,29 @@ Built with a clear separation of concerns:
 
 ---
 
+## 🧪 Detection Lab
+
+The **Detection Engineering** page turns scenario evidence into Sigma rules and:
+
+- converts them with the official **pySigma** backends to **Splunk (SPL)**, **Microsoft Defender XDR / Sentinel (KQL)** and **Elastic (Lucene/ECS)**, plus **Wazuh** XML rules (ThreatCanvas converter for the windows eventchannel decoder);
+- measures any Sigma rules against uploaded log datasets: [OTRF Security-Datasets](https://github.com/OTRF/Security-Datasets) (`.zip`/`.tar.gz`/JSON lines), Atomic Red Team / Windows **`.evtx`**, Winlogbeat NDJSON. Each dataset is labelled *malicious* (attack recording) or *benign* (baseline); the report shows dataset-level recall, benign alerts (false positives) and an alert-precision upper bound, with sample matching events.
+
+Uploads are limited to 50 MB (250 MB uncompressed, 50k events) and parsed in memory; regex/wildcard matching runs with a timeout so user-supplied rules cannot stall the server.
+
+---
+
+## 🟣 Purple Team Loop
+
+The **Purple Team** page closes the loop between a scenario and real telemetry:
+
+1. **Plan**: every CIR technique is mapped to [Atomic Red Team](https://github.com/redcanaryco/atomic-red-team) tests (bundled index, MIT, see `backend/app/data/ATOMIC_RED_TEAM_LICENSE.txt`; parent-technique fallback for sub-techniques).
+2. **Export**: an Invoke-AtomicRedTeam PowerShell script, or a **Caldera** bundle (abilities + adversary profile). Caldera's atomic plugin derives ability ids from a hash of each test, so the bundle ships its own abilities that call `Invoke-AtomicTest` on the agent.
+3. **Import results**: pick the telemetry captured during the run (a Detection Lab dataset) and optionally the execution log (Invoke-AtomicTest CSV or Caldera operation report). Each technique is reported as *Detected*, *Missed*, *No rule*, *Not executed* or *Unverified*.
+
+ThreatCanvas never executes attacks itself. Run exported plans only in an isolated lab you are authorized to test. Refresh the index with `python scripts/build_atomic_index.py <atomic-red-team checkout>`.
+
+---
+
 ## 🏗️ Architecture
 
 ```mermaid

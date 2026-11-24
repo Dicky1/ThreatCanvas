@@ -110,17 +110,19 @@ def test_sigma_rules_use_standard_tags_and_skip_nodes_without_observables():
 def test_kql_is_single_valid_union_with_escaped_strings():
     content = KQLCompiler(SCENARIO).compile()
     code = "\n".join(line for line in content.splitlines() if not line.startswith("//"))
+    assert "via pySigma" in content.splitlines()[0]
     assert code.startswith("union")
     assert code.count("(") == code.count(")")
     assert "| union" not in code
     assert 'RegistryValueData contains "C:\\\\Users\\\\Public\\\\it\\"s.exe"' in code
-    assert 'FileName =~ "powershell.exe"' in code
+    assert 'FolderPath endswith "\\\\powershell.exe"' in code
+    assert 'Technique="T1547.001"' in code
 
 
 def test_spl_uses_append_subsearches_with_escaped_strings():
     content = SPLCompiler(SCENARIO).compile()
     lines = content.splitlines()
-    assert lines[0].startswith("search index=")
+    assert lines[0].startswith('search source="WinEventLog:Microsoft-Windows-Sysmon/Operational"')
     assert all(line.startswith("| append [ search ") and line.endswith(" ]") for line in lines[1:])
     assert 'Details="*C:\\\\Users\\\\Public\\\\it\\"s.exe*"' in content
     assert re.search(r'Image="\*\\\\powershell\.exe"', content)
