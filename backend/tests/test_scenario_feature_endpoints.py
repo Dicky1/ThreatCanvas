@@ -4,6 +4,7 @@ scenario chat (all called a missing ScenarioRepository.get_scenario), plus
 parsing techniques that were missing from the old fallback ATT&CK catalog.
 """
 
+import secrets
 from types import SimpleNamespace
 
 import pytest
@@ -17,7 +18,9 @@ from app.core.database import Base, get_db
 from app.main import app
 from app.schemas.cir import CIRSpecification
 
-PASSWORD = "Str0ng-pass-123!"
+# Throwaway credential for the in-memory test DB, generated per run so no
+# literal password lives in the repo (keeps secret scanners quiet).
+TEST_USER_PASSWORD = secrets.token_urlsafe(24)
 
 
 def make_cir(nodes):
@@ -76,9 +79,9 @@ def client(monkeypatch):
 def auth(client):
     client.post(
         "/api/v1/auth/register",
-        json={"username": "analyst", "email": "analyst@example.com", "full_name": "A", "password": PASSWORD},
+        json={"username": "analyst", "email": "analyst@example.com", "full_name": "A", "password": TEST_USER_PASSWORD},
     )
-    token = client.post("/api/v1/auth/login", data={"username": "analyst", "password": PASSWORD}).json()["access_token"]
+    token = client.post("/api/v1/auth/login", data={"username": "analyst", "password": TEST_USER_PASSWORD}).json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
 
