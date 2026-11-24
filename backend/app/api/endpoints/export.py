@@ -1,9 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from app.core.database import get_db
-from app.api.deps import get_current_user
-from app.repositories.scenario_repo import ScenarioRepository
-from app.models.user import UserRecord
+from app.api.deps import get_owned_scenario
+from app.models.scenario import ScenarioRecord
 from app.services.attack_knowledge import ATTACKKnowledgeService
 
 router = APIRouter(prefix="/export", tags=["Export"])
@@ -17,18 +14,12 @@ def _attack_major_version() -> str:
 @router.get("/navigator/{scenario_id}")
 def export_mitre_navigator_layer(
     scenario_id: str,
-    db: Session = Depends(get_db),
-    current_user: UserRecord = Depends(get_current_user)
+    scenario: ScenarioRecord = Depends(get_owned_scenario),
 ):
     """
     Ekspor skenario ke format JSON layer MITRE ATT&CK Navigator.
     Ini 100% additive dan hanya membaca data (read-only).
     """
-    repo = ScenarioRepository(db)
-    scenario = repo.get_scenario(scenario_id, current_user.id)
-    
-    if not scenario:
-        raise HTTPException(status_code=404, detail="Skenario tidak ditemukan")
 
     cir_data = scenario.cir_graph_data
     if not cir_data or "attack_graph" not in cir_data or "nodes" not in cir_data["attack_graph"]:
@@ -89,17 +80,12 @@ from app.services.graph_analysis_engine import GraphAnalysisEngine
 @router.get("/report/markdown/{scenario_id}", response_class=PlainTextResponse)
 def export_executive_report(
     scenario_id: str,
-    db: Session = Depends(get_db),
-    current_user: UserRecord = Depends(get_current_user)
+    scenario: ScenarioRecord = Depends(get_owned_scenario),
 ):
     """
     Ekspor skenario menjadi Laporan Eksekutif berformat Markdown.
     Fitur ini 100% additive dan read-only.
     """
-    repo = ScenarioRepository(db)
-    scenario = repo.get_scenario(scenario_id, current_user.id)
-    if not scenario:
-        raise HTTPException(status_code=404, detail="Skenario tidak ditemukan")
     
     # 1. Grab Graph Analysis Data
     try:
@@ -119,23 +105,23 @@ def export_executive_report(
     date_str = datetime.now().strftime("%Y-%m-%d %H:%M")
     
     md = []
-    md.append(f"# Executive Threat Assessment Report")
+    md.append("# Executive Threat Assessment Report")
     md.append(f"**Scenario ID**: `{scenario_id}`")
     md.append(f"**Generated**: {date_str}\n")
     
-    md.append(f"## 1. Threat Narrative")
+    md.append("## 1. Threat Narrative")
     md.extend(f"> {line}" for line in scenario.original_input.strip().splitlines())
     md.append("")
     
-    md.append(f"## 2. Attack Graph Summary")
+    md.append("## 2. Attack Graph Summary")
     md.append(f"- **Total Attack Steps (Nodes)**: {len(nodes)}")
     md.append(f"- **Total Relationships (Edges)**: {len(edges)}")
     md.append(f"- **Unique ATT&CK Techniques**: {len(techniques)}\n")
     
     if analysis:
-        md.append(f"## 3. Threat Assessment & Critical Path")
+        md.append("## 3. Threat Assessment & Critical Path")
         
-        md.append(f"### Critical Path Highlights")
+        md.append("### Critical Path Highlights")
         crit_score = analysis.critical_path_explanation.criticality_score if analysis.critical_path_explanation else "N/A"
         md.append(f"- **Criticality Score**: {crit_score}")
         md.append(f"- **Path Length**: {len(analysis.critical_path) if analysis.critical_path else 0} nodes")
@@ -147,7 +133,7 @@ def export_executive_report(
         md.append(f"- **Trust Boundary Crossings**: {trust_count}\n")
         
         if analysis.asset_risk_signals:
-            md.append(f"### Top Asset Risk Signals")
+            md.append("### Top Asset Risk Signals")
             # Sort by risk score descending, take top 5
             top_risks = sorted(analysis.asset_risk_signals, key=lambda x: getattr(x, "risk_score", 0), reverse=True)[:5]
             for risk in top_risks:
@@ -157,6 +143,6 @@ def export_executive_report(
                 )
             md.append("\n")
     
-    md.append(f"---\n*Report generated automatically by ThreatCanvas AI.*")
+    md.append("---\n*Report generated automatically by ThreatCanvas AI.*")
     
     return "\n".join(md)

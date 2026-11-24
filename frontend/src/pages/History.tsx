@@ -59,7 +59,7 @@ export default function History() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h2 className="text-2xl font-semibold mb-1">Attack History</h2>
-          <p className="text-gray-400 text-sm">View, search, and reload your previously generated threat scenarios.</p>
+          <p className="text-gray-400 text-sm">View, search, and reload your own threat scenarios. Scenarios are private to your account.</p>
         </div>
         
         <div className="relative">

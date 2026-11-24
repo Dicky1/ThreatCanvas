@@ -1,9 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from app.core.database import get_db
-from app.api.deps import get_current_user
-from app.repositories.scenario_repo import ScenarioRepository
-from app.models.user import UserRecord
+from fastapi import APIRouter, Depends
+from app.api.deps import get_owned_scenario
+from app.models.scenario import ScenarioRecord
 from app.services.d3fend_mapping import D3FENDMappingService
 
 router = APIRouter(prefix="/d3fend", tags=["D3FEND"])
@@ -11,18 +8,13 @@ router = APIRouter(prefix="/d3fend", tags=["D3FEND"])
 @router.get("/{scenario_id}")
 def get_d3fend_remediation(
     scenario_id: str,
-    db: Session = Depends(get_db),
-    current_user: UserRecord = Depends(get_current_user)
+    scenario: ScenarioRecord = Depends(get_owned_scenario),
 ):
     """
     Otomatisasi Remediasi (D3FEND Copilot).
     Mengekstrak teknik MITRE ATT&CK dari skenario aktif dan 
     memetakan kontrol pertahanan D3FEND yang relevan.
     """
-    repo = ScenarioRepository(db)
-    scenario = repo.get_scenario(scenario_id, current_user.id)
-    if not scenario:
-        raise HTTPException(status_code=404, detail="Skenario tidak ditemukan")
 
     cir_data = scenario.cir_graph_data
     if not cir_data or "attack_graph" not in cir_data or "nodes" not in cir_data["attack_graph"]:

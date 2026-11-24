@@ -109,6 +109,7 @@ curl -X POST http://localhost:8000/api/v1/auth/register \
 | `ALLOW_REGISTRATION`| Toggle open registration for the `/register` endpoint | `true` |
 | `ATTACK_STIX_PATH` | Optional local ATT&CK STIX bundle path | Auto-detects local JSON |
 | `CTI_ALLOW_PRIVATE_NETWORKS` | Allow `/cti/fetch` to target RFC1918 private IPs | `false` |
+| `LEGACY_SCENARIO_OWNER` | Username that adopts scenarios created before per-user ownership (empty = auto-adopt only when exactly one user exists) | *empty* |
 
 ---
 

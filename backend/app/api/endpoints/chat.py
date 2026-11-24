@@ -1,13 +1,10 @@
 from typing import List, Literal
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
+from pydantic import BaseModel, Field
 import json
 
-from app.core.database import get_db
-from app.api.deps import get_current_user
-from app.repositories.scenario_repo import ScenarioRepository
-from app.models.user import UserRecord
+from app.api.deps import get_owned_scenario
+from app.models.scenario import ScenarioRecord
 from app.core.config import settings
 
 # Menggunakan AsyncOpenAI agar non-blocking
@@ -21,11 +18,12 @@ router = APIRouter(prefix="/chat", tags=["Chat"])
 client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_API_BASE)
 
 class ChatMessage(BaseModel):
-    role: Literal["user", "assistant", "system"]
-    content: str
+    # "system" is reserved for the server-built prompt; clients cannot inject one.
+    role: Literal["user", "assistant"]
+    content: str = Field(..., min_length=1, max_length=4000)
 
 class ChatRequest(BaseModel):
-    messages: List[ChatMessage]
+    messages: List[ChatMessage] = Field(..., min_length=1, max_length=30)
 
 class ChatResponse(BaseModel):
     reply: str
@@ -34,18 +32,12 @@ class ChatResponse(BaseModel):
 async def chat_with_scenario(
     scenario_id: str,
     payload: ChatRequest,
-    db: Session = Depends(get_db),
-    current_user: UserRecord = Depends(get_current_user)
+    scenario: ScenarioRecord = Depends(get_owned_scenario),
 ):
     """
     Tanya-jawab interaktif dengan AI mengenai skenario tertentu.
     Context skenario akan di-inject otomatis ke sistem prompt.
     """
-    repo = ScenarioRepository(db)
-    scenario = repo.get_scenario(scenario_id, current_user.id)
-    
-    if not scenario:
-        raise HTTPException(status_code=404, detail="Skenario tidak ditemukan")
 
     cir_data = scenario.cir_graph_data
     

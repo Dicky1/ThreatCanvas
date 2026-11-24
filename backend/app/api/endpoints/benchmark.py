@@ -2,9 +2,8 @@ import json
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
-from app.core.database import get_db
-from app.repositories.scenario_repo import ScenarioRepository
+from app.api.deps import get_owned_cir
+from app.schemas.cir import CIRSpecification
 from app.services.coverage_analyzer import CoverageAnalyzer
 
 router = APIRouter(prefix="/benchmark", tags=["Benchmark"])
@@ -19,10 +18,7 @@ def benchmark_report():
 
 
 @router.get("/{scenario_id}")
-def benchmark_scenario(scenario_id: str, db: Session = Depends(get_db)):
-    cir = ScenarioRepository(db).get_cir(scenario_id)
-    if cir is None:
-        raise HTTPException(status_code=404, detail="Scenario not found")
+def benchmark_scenario(scenario_id: str, cir: CIRSpecification = Depends(get_owned_cir)):
     coverage = CoverageAnalyzer(cir).analyze()
     nodes = cir.attack_graph.nodes
     edges = cir.attack_graph.edges

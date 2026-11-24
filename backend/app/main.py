@@ -4,6 +4,8 @@ from app.api.deps import get_current_user
 from app.api.endpoints import parser, compilers, coverage
 from app.core.config import settings
 from app.core.database import engine, Base
+from app.core.migrations import run_migrations
+from app.models.scenario import ScenarioRecord as _ScenarioRecord  # noqa: F401 – registers table with Base.metadata
 from app.api.endpoints import graph_analysis
 from app.api.endpoints import reasoning
 from app.api.endpoints import auth
@@ -28,6 +30,7 @@ from app.models.notification import NotificationRecord as _NotificationRecord  #
 settings.validate_security()
 
 Base.metadata.create_all(bind=engine)
+run_migrations(engine)
 
 app = FastAPI(title="ThreatCanvas AI API", version="1.0.0")
 

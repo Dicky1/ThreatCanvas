@@ -18,7 +18,7 @@ calls this automatically after downloading a fresh bundle.
 
 import json
 import sys
-from datetime import UTC, datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 DATA_DIR = Path(__file__).parent.parent / "app" / "data"
