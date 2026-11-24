@@ -1,21 +1,8 @@
-from app.schemas.cir import CIRSpecification
-from app.services.detection_observables import (
-    FILE,
-    NETWORK,
-    PROCESS,
-    REGISTRY,
-    Observable,
-    node_observable_groups,
-)
+import yaml
 
-SYSMON = 'sourcetype="XmlWinEventLog:Microsoft-Windows-Sysmon/Operational"'
-# Sysmon event IDs per telemetry category.
-EVENT_CODES = {
-    PROCESS: "EventCode=1",
-    NETWORK: "EventCode=3",
-    FILE: "EventCode=11",
-    REGISTRY: "EventCode IN (12, 13, 14)",
-}
+from app.schemas.cir import CIRSpecification
+from app.services.sigma_compiler import SigmaCompiler
+from app.services.sigma_conversion import convert
 
 
 def spl_string(value: str) -> str:
@@ -23,31 +10,31 @@ def spl_string(value: str) -> str:
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def _condition(observable: Observable) -> str:
-    value = observable.value
-    if observable.op == "endswith":
-        value = "*" + value
-    elif observable.op == "contains":
-        value = f"*{value}*"
-    return f"{observable.field}={spl_string(value)}"
-
-
 class SPLCompiler:
-    def __init__(self, cir_data: CIRSpecification, index: str = "*"):
+    """CIR -> Sigma (from evidence) -> SPL via the pySigma Splunk backend
+    (Sysmon + Splunk Windows pipelines). Each rule is a subsearch tagged with
+    its CIR step / ATT&CK mapping."""
+
+    def __init__(self, cir_data: CIRSpecification):
         self.cir_data = cir_data
-        self.index = index
 
     def compile(self) -> str:
-        """Mengubah CIR Graph menjadi satu pencarian SPL (Splunk, data Sysmon) yang valid."""
+        sigma = SigmaCompiler(self.cir_data)
         searches: list[str] = []
         for node in self.cir_data.attack_graph.nodes:
-            for group in node_observable_groups(node):
-                conditions = " ".join(_condition(o) for o in group.observables)
-                searches.append(
-                    f"search index={self.index} {SYSMON} {EVENT_CODES[group.category]} {conditions}"
-                    f" | eval step_id={spl_string(node.step_id)}, tactic={spl_string(node.tactic)},"
-                    f" technique={spl_string(node.technique)}"
-                )
+            rules = sigma.rules_for_node(node)
+            if not rules:
+                continue
+            result = convert(yaml.safe_dump_all(rules, sort_keys=False), "splunk")
+            for rule in result.rules:
+                if rule.error:
+                    continue
+                for query in rule.queries:
+                    searches.append(
+                        f"search {query}"
+                        f" | eval step_id={spl_string(node.step_id)}, tactic={spl_string(node.tactic)},"
+                        f" technique={spl_string(node.technique)}"
+                    )
 
         if not searches:
             return '| makeresults | eval message="ThreatCanvas: no detectable observable in scenario evidence"'

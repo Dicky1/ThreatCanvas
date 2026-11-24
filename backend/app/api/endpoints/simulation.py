@@ -1,17 +1,19 @@
-from fastapi import APIRouter, HTTPException, Depends
+from time import perf_counter
+
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+
 from app.api.deps import get_owned_scenario
 from app.core.database import get_db
+from app.models.experiment import ExperimentMetric
 from app.models.scenario import ScenarioRecord
-from app.schemas.simulation import SimulationRequest, SimulationResult
 from app.schemas.cir import CIRSpecification
+from app.schemas.simulation import SimulationRequest, SimulationResult
 from app.services.attack_simulation_engine import AttackSimulationEngine
+from app.services.budget_optimizer import BudgetOptimizer
+from app.services.d3fend_mapping import D3FENDMappingService
 from app.services.defense_optimization_engine import DefenseOptimizationEngine
 from app.services.threat_reasoning_engine import ThreatReasoningEngine
-from app.services.d3fend_mapping import D3FENDMappingService
-from app.services.budget_optimizer import BudgetOptimizer
-from app.models.experiment import ExperimentMetric
-from time import perf_counter
 
 # Inisialisasi router FastAPI
 router = APIRouter()

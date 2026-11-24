@@ -54,7 +54,7 @@ def owner_and_scenario(api_client, make_user, monkeypatch):
         return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="ok"))])
 
     monkeypatch.setattr(parser, "parse_narrative_to_cir", fake_llm)
-    monkeypatch.setattr(chat.client.chat.completions, "create", fake_chat)
+    monkeypatch.setattr(chat, "client_for", lambda profile: SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=fake_chat))))
     alice = make_user("alice")
     response = api_client.post("/api/v1/parse", json={"scenario": "alice's scenario"}, headers=alice)
     assert response.status_code == 200, response.text

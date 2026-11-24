@@ -1,5 +1,4 @@
 import type {
-  CIRSpecification,
   CollectiveDefenseResult,
   CoverageReport,
   AttackTimeline,
@@ -7,7 +6,26 @@ import type {
   ConsensusResult,
   CTIFetchResult,
   DetectionValidationResult,
+  AlertIngestResponse,
+  CIRSpecification,
+  ConversionResponse,
+  CtiIngestResponse,
+  DataSourceState,
+  GapAnalysis,
+  InventorySummary,
+  BenchmarkCase,
+  BenchmarkRun as BenchmarkRunInfo,
+  LLMProfileInfo,
+  WorkspaceMemberInfo,
+  WorkspaceRole,
+  WorkspaceSummary,
+  DetectionDataset,
+  DetectionTarget,
+  EvaluationReport,
   GraphAnalysis,
+  ParseResponse,
+  PurplePlan,
+  PurpleRun,
   ResearchMetricResult,
   Scenario,
   SimulationResult,
@@ -21,10 +39,13 @@ export const USER_KEY = 'tc_user';
 
 export class ApiError extends Error {
   public readonly status: number;
+  /** Raw `detail` from the backend (may be a structured object). */
+  public readonly detail: unknown;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, detail?: unknown) {
     super(message);
     this.status = status;
+    this.detail = detail;
     this.name = 'ApiError';
   }
 }
@@ -51,9 +72,15 @@ function authHeader(): Record<string, string> {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+const DEFAULT_TIMEOUT_MS = 20_000;
+// LLM-backed calls may run several self-repair rounds.
+export const LLM_TIMEOUT_MS = 180_000;
+// Dataset uploads / evaluations can take a while on large files.
+export const UPLOAD_TIMEOUT_MS = 120_000;
+
+async function request<T>(path: string, init?: RequestInit, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
   const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 20_000);
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
@@ -68,8 +95,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       body = text;
     }
     if (!response.ok) {
-      const detail = typeof body === 'object' && body !== null && 'detail' in body
-        ? formatErrorDetail((body as { detail: unknown }).detail)
+      const rawDetail = typeof body === 'object' && body !== null && 'detail' in body
+        ? (body as { detail: unknown }).detail
+        : undefined;
+      const detail = rawDetail !== undefined
+        ? formatErrorDetail(rawDetail)
         : `Request failed with HTTP ${response.status}`;
       if (response.status === 401) {
         // Token missing/expired/invalid: clear it and let the app react
@@ -82,7 +112,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
         }
         window.dispatchEvent(new CustomEvent('tc:unauthorized'));
       }
-      throw new ApiError(response.status, detail);
+      throw new ApiError(response.status, detail, rawDetail);
     }
     return body as T;
   } catch (error) {
@@ -95,16 +125,33 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
+/** Authenticated request returning a file (Blob) plus its suggested filename. */
+async function requestFile(path: string, init?: RequestInit): Promise<{ blob: Blob; filename: string }> {
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers: { ...authHeader(), ...init?.headers } });
+  if (!response.ok) {
+    let detail = `Request failed with HTTP ${response.status}`;
+    try {
+      const body = await response.json();
+      if (body && 'detail' in body) detail = formatErrorDetail(body.detail);
+    } catch { /* non-JSON error body */ }
+    if (response.status === 401) window.dispatchEvent(new CustomEvent('tc:unauthorized'));
+    throw new ApiError(response.status, detail);
+  }
+  const disposition = response.headers.get('content-disposition') || '';
+  const filename = /filename="([^"]+)"/.exec(disposition)?.[1] || 'download';
+  return { blob: await response.blob(), filename };
+}
+
 export const api = {
   health: () => fetch('/health').then((response) => {
     if (!response.ok) throw new ApiError(response.status, 'Backend health check failed');
     return response.json() as Promise<{ status: string }>;
   }),
-  parse: (scenario: string) => request<{ cir: CIRSpecification; validation: Record<string, unknown>; id: string }>('/v1/parse', {
+  parse: (scenario: string, modelProfile?: string | null) => request<ParseResponse>('/v1/parse', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ scenario }),
-  }),
+    body: JSON.stringify(modelProfile ? { scenario, model_profile: modelProfile } : { scenario }),
+  }, LLM_TIMEOUT_MS),
   login: (username: string, password: string) => {
     const body = new URLSearchParams({ username, password });
     return request<{ access_token: string; user: unknown }>('/v1/auth/login', {
@@ -118,7 +165,8 @@ export const api = {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   }),
-  scenarios: () => request<Scenario[]>('/v1/scenarios'),
+  scenarios: (workspace?: string) => request<Scenario[]>(`/v1/scenarios${workspace ? `?workspace=${encodeURIComponent(workspace)}` : ''}`),
+  scenario: (id: string) => request<Scenario & { cir_graph_data: CIRSpecification }>(`/v1/scenarios/${encodeURIComponent(id)}`),
   coverage: (id: string) => request<CoverageReport>(`/v1/coverage/${id}`),
   analysis: (id: string) => request<GraphAnalysis>(`/v1/graph-analysis/${id}`),
   reasoning: (id: string) => request<Record<string, unknown>>(`/v1/reasoning/${id}`),
@@ -179,7 +227,93 @@ export const api = {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages })
-  }),
+  }, LLM_TIMEOUT_MS),
   d3fend: (id: string) => request<{ remediations: Array<{ technique_id: string, technique_name: string, countermeasures: Array<{ defensive_technique: string, rationale: string, source: string, confidence: number }> }> }>(`/v1/d3fend/${id}`),
+  detectionTargets: () => request<DetectionTarget[]>('/v1/detection/targets'),
+  convertScenario: (target: string, id: string) => request<ConversionResponse>(`/v1/detection/convert/${encodeURIComponent(target)}/${encodeURIComponent(id)}`),
+  convertSigma: (target: string, sigma: string) => request<ConversionResponse>(`/v1/detection/convert/${encodeURIComponent(target)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sigma }),
+  }),
+  datasets: () => request<DetectionDataset[]>('/v1/detection/datasets'),
+  uploadDataset: (payload: { file: File; name: string; label: 'malicious' | 'benign'; techniqueIds: string }) => {
+    const form = new FormData();
+    form.append('file', payload.file);
+    form.append('name', payload.name);
+    form.append('label', payload.label);
+    form.append('technique_ids', payload.techniqueIds);
+    // No Content-Type header: the browser sets the multipart boundary.
+    return request<DetectionDataset>('/v1/detection/datasets', { method: 'POST', body: form }, UPLOAD_TIMEOUT_MS);
+  },
+  deleteDataset: (id: string) => request<unknown>(`/v1/detection/datasets/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  evaluateRules: (payload: { dataset_ids: string[]; scenario_id?: string; sigma?: string }) => request<EvaluationReport>('/v1/detection/evaluate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }, UPLOAD_TIMEOUT_MS),
+  purplePlan: (id: string, platform: string) => request<PurplePlan>(`/v1/purple/plan/${encodeURIComponent(id)}?platform=${encodeURIComponent(platform)}`),
+  exportPurple: (id: string, payload: { format: 'invoke-atomic' | 'caldera'; platform: string; test_guids: string[] }) => requestFile(`/v1/purple/export/${encodeURIComponent(id)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }),
+  createPurpleRun: (payload: { scenarioId: string; datasetId: string; platform: string; executionLog?: File | null }) => {
+    const form = new FormData();
+    form.append('scenario_id', payload.scenarioId);
+    form.append('dataset_id', payload.datasetId);
+    form.append('platform', payload.platform);
+    if (payload.executionLog) form.append('execution_log', payload.executionLog);
+    return request<PurpleRun>('/v1/purple/runs', { method: 'POST', body: form }, UPLOAD_TIMEOUT_MS);
+  },
+  purpleRuns: (scenarioId: string) => request<PurpleRun[]>(`/v1/purple/runs?scenario_id=${encodeURIComponent(scenarioId)}`),
+  deletePurpleRun: (id: string) => request<unknown>(`/v1/purple/runs/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  ingestAlerts: (file: File, useLlm: boolean, modelProfile?: string | null) => {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('use_llm', String(useLlm));
+    if (modelProfile) form.append('model_profile', modelProfile);
+    return request<AlertIngestResponse>('/v1/ingest/alerts', { method: 'POST', body: form }, LLM_TIMEOUT_MS);
+  },
+  ingestCti: (input: { file?: File; url?: string; text?: string }, modelProfile?: string | null) => {
+    const form = new FormData();
+    if (modelProfile) form.append('model_profile', modelProfile);
+    if (input.file) form.append('file', input.file);
+    if (input.url) form.append('url', input.url);
+    if (input.text) form.append('text', input.text);
+    return request<CtiIngestResponse>('/v1/ingest/cti', { method: 'POST', body: form }, LLM_TIMEOUT_MS);
+  },
+  inventorySummary: () => request<InventorySummary>('/v1/coverage-gap/rules'),
+  importInventory: (file: File, replace: boolean) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<{ imported: number; skipped_untagged: number; errors: string[] }>(`/v1/coverage-gap/rules?replace=${replace}`, { method: 'POST', body: form }, UPLOAD_TIMEOUT_MS);
+  },
+  clearInventory: () => request<{ deleted: number }>('/v1/coverage-gap/rules', { method: 'DELETE' }),
+  dataSources: () => request<DataSourceState>('/v1/coverage-gap/data-sources'),
+  saveDataSources: (components: string[]) => request<{ components: string[]; source: string }>('/v1/coverage-gap/data-sources', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ components }),
+  }),
+  importDettect: (file: File) => {
+    const form = new FormData();
+    form.append('file', file);
+    return request<{ components: string[]; source: string; unmatched: string[] }>('/v1/coverage-gap/data-sources/dettect', { method: 'POST', body: form });
+  },
+  gapAnalysis: (id: string) => request<GapAnalysis>(`/v1/coverage-gap/${encodeURIComponent(id)}`),
+  gapNavigator: (id: string) => request<unknown>(`/v1/coverage-gap/${encodeURIComponent(id)}/navigator`),
+  llmProfiles: () => request<{ default: string; profiles: LLMProfileInfo[] }>('/v1/llm/profiles'),
+  workspaces: () => request<WorkspaceSummary[]>('/v1/workspaces'),
+  createWorkspace: (name: string) => request<WorkspaceSummary>('/v1/workspaces', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) }),
+  deleteWorkspace: (id: string) => request<{ scenarios_unshared: number }>(`/v1/workspaces/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  workspaceMembers: (id: string) => request<WorkspaceMemberInfo[]>(`/v1/workspaces/${encodeURIComponent(id)}/members`),
+  addWorkspaceMember: (id: string, username: string, role: WorkspaceRole) => request<unknown>(`/v1/workspaces/${encodeURIComponent(id)}/members`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, role }) }),
+  updateWorkspaceMember: (id: string, userId: string, role: WorkspaceRole) => request<unknown>(`/v1/workspaces/${encodeURIComponent(id)}/members/${encodeURIComponent(userId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) }),
+  removeWorkspaceMember: (id: string, userId: string) => request<unknown>(`/v1/workspaces/${encodeURIComponent(id)}/members/${encodeURIComponent(userId)}`, { method: 'DELETE' }),
+  shareScenario: (id: string, workspaceId: string | null) => request<Scenario>(`/v1/scenarios/${encodeURIComponent(id)}/workspace`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ workspace_id: workspaceId }) }),
+  benchmarkCases: () => request<BenchmarkCase[]>('/v1/benchmark/cases'),
+  startBenchmark: (profiles: string[], caseIds?: string[]) => request<BenchmarkRunInfo>('/v1/benchmark/runs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profiles, case_ids: caseIds?.length ? caseIds : null }) }),
+  benchmarkRuns: () => request<BenchmarkRunInfo[]>('/v1/benchmark/runs'),
+  benchmarkRun: (id: string) => request<BenchmarkRunInfo>(`/v1/benchmark/runs/${encodeURIComponent(id)}`),
 };
-

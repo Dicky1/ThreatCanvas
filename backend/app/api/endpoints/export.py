@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+
 from app.api.deps import get_owned_scenario
 from app.models.scenario import ScenarioRecord
 from app.services.attack_knowledge import ATTACKKnowledgeService
@@ -73,9 +74,12 @@ def export_mitre_navigator_layer(
     return layer
 
 
-from fastapi.responses import PlainTextResponse
 from datetime import datetime
+
+from fastapi.responses import PlainTextResponse
+
 from app.services.graph_analysis_engine import GraphAnalysisEngine
+
 
 @router.get("/report/markdown/{scenario_id}", response_class=PlainTextResponse)
 def export_executive_report(

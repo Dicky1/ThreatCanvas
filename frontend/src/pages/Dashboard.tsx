@@ -9,6 +9,7 @@ import AttackSimulationView from "../components/AttackSimulationView";
 import AttackTimelinePlayer from "../components/AttackTimelinePlayer";
 import ScenarioChat from "../components/ScenarioChat";
 import D3fendCopilot from "../components/D3fendCopilot";
+import ModelSelect from "../components/ModelSelect";
 import { useLocation } from "react-router-dom";
 import { api } from "../api/client";
 import { StatusBadge } from "../components/common/Primitives";
@@ -27,6 +28,7 @@ export default function Dashboard() {
     artifacts,
     fetchArtifacts,
     validation,
+    repairAttempts,
   } = useThreatStore();
 
   // Tambahkan "simulation" ke dalam tipe union activeTab
@@ -41,6 +43,11 @@ export default function Dashboard() {
   const [timeline, setTimeline] = useState<AttackTimeline | null>(null);
 
   const location = useLocation();
+
+  // A parse that failed validation has no graph: jump to the report.
+  useEffect(() => {
+    if (!cirData && validation) setActiveTab("validation");
+  }, [cirData, validation]);
 
   useEffect(() => {
     if (!scenarioId) {
@@ -139,10 +146,11 @@ export default function Dashboard() {
           onChange={(e) => setScenarioInput(e.target.value)}
         />
 
+        <div className="mt-4 flex flex-wrap items-center gap-4">
         <button
           onClick={processScenario}
           disabled={isProcessing}
-          className="mt-4 flex items-center px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+          className="flex items-center px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
         >
           {isProcessing ? (
             <Loader2 className="animate-spin mr-2" />
@@ -151,6 +159,15 @@ export default function Dashboard() {
           )}
           Generate Artifacts
         </button>
+        <ModelSelect />
+        </div>
+
+        {cirData && repairAttempts.length > 0 && (
+          <p className="mt-3 text-amber-300 text-sm flex items-center gap-2">
+            <ShieldCheck size={16} />
+            AI self-repair: CIR diperbaiki otomatis setelah {repairAttempts.length} percobaan gagal validasi. Detail di tab Validation.
+          </p>
+        )}
 
         {error && !cirData && (
           <p className="mt-3 text-red-400 flex items-center">
@@ -485,6 +502,29 @@ export default function Dashboard() {
                     ))}
                   </ul>
                 </>
+              )}
+
+              {repairAttempts.length > 0 && (
+                <div className="mt-5">
+                  <h4 className="text-amber-300 font-semibold mb-2">AI self-repair log</h4>
+                  <ol className="space-y-3">
+                    {repairAttempts.map((attempt) => (
+                      <li key={attempt.attempt} className="rounded-md border border-gray-700 bg-black/20 p-3">
+                        <div className="flex items-center gap-2 mb-1 text-sm">
+                          <StatusBadge tone="warn">Attempt {attempt.attempt}</StatusBadge>
+                          <span className="text-gray-400">
+                            {attempt.stage === "schema" ? "Output AI bukan CIR yang valid" : "CIR gagal validasi"} — dikirim balik ke AI untuk diperbaiki
+                          </span>
+                        </div>
+                        <ul className="list-disc ml-6 text-sm text-gray-300 space-y-1">
+                          {attempt.errors.map((err, index) => (
+                            <li key={index}>{err}</li>
+                          ))}
+                        </ul>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
               )}
 
               {validation.warnings && validation.warnings.length > 0 && (
