@@ -6,6 +6,10 @@ import type {
   ConsensusResult,
   CTIFetchResult,
   DetectionValidationResult,
+  ConversionResponse,
+  DetectionDataset,
+  DetectionTarget,
+  EvaluationReport,
   GraphAnalysis,
   ParseResponse,
   ResearchMetricResult,
@@ -57,6 +61,8 @@ function authHeader(): Record<string, string> {
 const DEFAULT_TIMEOUT_MS = 20_000;
 // LLM-backed calls may run several self-repair rounds.
 export const LLM_TIMEOUT_MS = 180_000;
+// Dataset uploads / evaluations can take a while on large files.
+export const UPLOAD_TIMEOUT_MS = 120_000;
 
 async function request<T>(path: string, init?: RequestInit, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
   const controller = new AbortController();
@@ -191,5 +197,27 @@ export const api = {
     body: JSON.stringify({ messages })
   }, LLM_TIMEOUT_MS),
   d3fend: (id: string) => request<{ remediations: Array<{ technique_id: string, technique_name: string, countermeasures: Array<{ defensive_technique: string, rationale: string, source: string, confidence: number }> }> }>(`/v1/d3fend/${id}`),
+  detectionTargets: () => request<DetectionTarget[]>('/v1/detection/targets'),
+  convertScenario: (target: string, id: string) => request<ConversionResponse>(`/v1/detection/convert/${encodeURIComponent(target)}/${encodeURIComponent(id)}`),
+  convertSigma: (target: string, sigma: string) => request<ConversionResponse>(`/v1/detection/convert/${encodeURIComponent(target)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sigma }),
+  }),
+  datasets: () => request<DetectionDataset[]>('/v1/detection/datasets'),
+  uploadDataset: (payload: { file: File; name: string; label: 'malicious' | 'benign'; techniqueIds: string }) => {
+    const form = new FormData();
+    form.append('file', payload.file);
+    form.append('name', payload.name);
+    form.append('label', payload.label);
+    form.append('technique_ids', payload.techniqueIds);
+    // No Content-Type header: the browser sets the multipart boundary.
+    return request<DetectionDataset>('/v1/detection/datasets', { method: 'POST', body: form }, UPLOAD_TIMEOUT_MS);
+  },
+  deleteDataset: (id: string) => request<unknown>(`/v1/detection/datasets/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  evaluateRules: (payload: { dataset_ids: string[]; scenario_id?: string; sigma?: string }) => request<EvaluationReport>('/v1/detection/evaluate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }, UPLOAD_TIMEOUT_MS),
 };
-

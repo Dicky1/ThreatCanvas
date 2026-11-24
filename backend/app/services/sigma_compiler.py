@@ -49,7 +49,8 @@ class SigmaCompiler:
     def __init__(self, cir_data: CIRSpecification):
         self.cir_data = cir_data
 
-    def _rules_for_node(self, node: CIRNode, scenario_id: str) -> list[dict]:
+    def rules_for_node(self, node: CIRNode, scenario_id: str | None = None) -> list[dict]:
+        scenario_id = scenario_id or self.cir_data.scenario_id
         by_category: dict[str, list[ObservableGroup]] = {}
         for group in node_observable_groups(node):
             by_category.setdefault(group.category, []).append(group)
@@ -86,7 +87,7 @@ class SigmaCompiler:
         rules: list[dict] = []
         skipped: list[str] = []
         for node in self.cir_data.attack_graph.nodes:
-            node_rules = self._rules_for_node(node, self.cir_data.scenario_id)
+            node_rules = self.rules_for_node(node)
             if node_rules:
                 rules.extend(node_rules)
             else:

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Shield, Activity, Settings, History, Radar, Workflow, FlaskConical, Users, ChevronLeft, ChevronRight, Info, BookOpen, Network } from 'lucide-react';
+import { Shield, Activity, Settings, History, Radar, Workflow, FlaskConical, Users, ChevronLeft, ChevronRight, Info, BookOpen, Network, FileSearch } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 
 /**
@@ -12,6 +12,7 @@ export default function Sidebar({ mobileOpen = false, onClose }: { mobileOpen?: 
     { icon: Activity, label: 'Dashboard', path: '/' },
     { icon: Workflow, label: 'Threat Modeling', path: '/threat-modeling' },
     { icon: Network, label: 'Knowledge Graph', path: '/knowledge-graph' },
+    { icon: FileSearch, label: 'Detection Engineering', path: '/detection' },
     { icon: Radar, label: 'Threat Intelligence', path: '/intelligence' },
     { icon: Users, label: 'Collective Defense', path: '/collective-defense' },
     { icon: FlaskConical, label: 'Research Metrics', path: '/research' },

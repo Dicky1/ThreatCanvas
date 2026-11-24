@@ -86,3 +86,20 @@
 .mono { overflow-wrap: anywhere; }
 .data-row > * { min-width: 0; }
 @media (max-width: 640px) { .page-header, .panel-heading { align-items: flex-start; flex-direction: column; gap: 10px; }.page-header { padding-bottom: 0; }.metric-grid { grid-template-columns: 1fr; }.data-row { align-items: flex-start; flex-direction: column; }.data-row .button, .data-row .status-badge { align-self: flex-start; }.workflow { gap: 8px; }.collective-form { grid-template-columns: 1fr; }.collective-form label.span-2 { grid-column: span 1; } }
+/* Shared form + table styles for feature pages */
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.form-grid label { display: grid; gap: 6px; min-width: 0; }
+.form-grid label.span-2 { grid-column: span 2; }
+.form-grid span { color: #78909f; font-size: .66rem; font-weight: 750; letter-spacing: .08em; text-transform: uppercase; }
+.form-grid input, .form-grid select, .form-grid textarea { width: 100%; min-height: 36px; padding: 8px 10px; color: #d7e5eb; border: 1px solid #29404d; border-radius: 6px; outline: 0; background: #091117; font-size: .78rem; }
+.form-grid textarea { font: .75rem/1.6 "Cascadia Code", Consolas, monospace; resize: vertical; }
+.form-grid input:focus, .form-grid select:focus, .form-grid textarea:focus { border-color: #5894b1; }
+.form-hint { color: #748d9a; font-size: .72rem; line-height: 1.5; }
+.form-error { color: #f19a9a; font-size: .75rem; }
+.data-table { width: 100%; border-collapse: collapse; font-size: .75rem; }
+.data-table th { padding: 8px 10px; color: #78909f; font-size: .64rem; font-weight: 750; letter-spacing: .08em; text-align: left; text-transform: uppercase; border-bottom: 1px solid #253944; }
+.data-table td { padding: 9px 10px; color: #c3d4dc; border-bottom: 1px solid #1b2c36; vertical-align: top; }
+.data-table td.mono, .data-table .mono { font-family: "Cascadia Code", Consolas, monospace; }
+.table-scroll { overflow-x: auto; }
+.inline-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+@media (max-width: 720px) { .form-grid { grid-template-columns: 1fr; } .form-grid label.span-2 { grid-column: auto; } }

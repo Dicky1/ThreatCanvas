@@ -318,3 +318,50 @@ export interface ParseResponse {
   id: string;
   repair_attempts: RepairAttempt[];
 }
+
+// ---- Detection lab (pySigma conversion + dataset measurement) ----
+export interface DetectionTarget { key: 'splunk' | 'kql' | 'elastic' | 'wazuh'; label: string; language: string; description: string }
+
+export interface ConvertedRule { title: string; rule_id: string | null; techniques: string[]; queries: string[]; error: string | null }
+
+export interface ConversionResponse { target: string; language: string; rules: ConvertedRule[]; errors: string[]; sigma?: string }
+
+export interface DetectionDataset {
+  id: string;
+  name: string;
+  label: 'malicious' | 'benign';
+  technique_ids: string[];
+  source_filename: string | null;
+  event_count: number;
+  created_at: string;
+}
+
+export interface EvaluationRuleReport {
+  title: string;
+  rule_id: string | null;
+  techniques: string[];
+  error: string | null;
+  malicious_hits: number;
+  benign_hits: number;
+  datasets: Array<{ dataset_id: string; name: string; label: string; hits: number; samples: Array<Record<string, unknown>> }>;
+}
+
+export interface EvaluationReport {
+  summary: {
+    rules: number;
+    rules_with_errors: number;
+    malicious_datasets: number;
+    benign_datasets: number;
+    detected_malicious_datasets: number;
+    dataset_recall: number | null;
+    malicious_alerts: number;
+    benign_alerts: number;
+    alert_precision: number | null;
+  };
+  rules: EvaluationRuleReport[];
+  datasets: Array<{ dataset_id: string; name: string; label: string; technique_ids: string[]; event_count: number; alerts: number; detected: boolean; relevant_rules: number }>;
+  techniques: Array<{ technique: string; rules: number; datasets: number; detected_datasets: number }>;
+  truncated: boolean;
+  elapsed_ms: number;
+  sigma: string;
+}
