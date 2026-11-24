@@ -1,21 +1,18 @@
+import json
+import logging
 from typing import List, Literal
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-import json
 
 from app.api.deps import get_owned_scenario
 from app.models.scenario import ScenarioRecord
-from app.core.config import settings
-
-# Menggunakan AsyncOpenAI agar non-blocking
-from openai import AsyncOpenAI
-import logging
+from app.services.llm_client import UnknownProfileError, client_for, get_profile
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
-client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.OPENAI_API_BASE)
 
 class ChatMessage(BaseModel):
     # "system" is reserved for the server-built prompt; clients cannot inject one.
@@ -24,6 +21,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: List[ChatMessage] = Field(..., min_length=1, max_length=30)
+    model_profile: str | None = Field(default=None, max_length=64)
 
 class ChatResponse(BaseModel):
     reply: str
@@ -58,8 +56,12 @@ Do not output markdown code blocks unless necessary. Keep it conversational."""
         api_messages.append({"role": msg.role, "content": msg.content})
 
     try:
-        response = await client.chat.completions.create(
-            model="gpt-4o",  # Atau biarkan proxy SumoPod menangani model
+        llm = get_profile(payload.model_profile)
+    except UnknownProfileError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    try:
+        response = await client_for(llm).chat.completions.create(
+            model=llm.model,
             messages=api_messages,
             max_tokens=800,
             temperature=0.7

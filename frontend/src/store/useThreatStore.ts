@@ -48,6 +48,9 @@ interface ThreatState {
   coverageData: CoverageReport | null;
   /** Self-repair rounds the backend needed (or used before giving up). */
   repairAttempts: RepairAttempt[];
+  /** Selected LLM profile (null = server default). */
+  modelProfile: string | null;
+  setModelProfile: (profile: string | null) => void;
 
   setScenarioInput: (input: string) => void;
   processScenario: () => Promise<void>;
@@ -63,6 +66,11 @@ function truncate(text: string, maxLength = 60): string {
   return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
 }
 
+const MODEL_KEY = 'tc_model_profile';
+function loadModelProfile(): string | null {
+  try { return localStorage.getItem(MODEL_KEY); } catch { return null; }
+}
+
 export const useThreatStore = create<ThreatState>((set, get) => ({
   scenarioInput: '',
   isProcessing: false,
@@ -75,6 +83,13 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
   validation: null,
   coverageData: null,
   repairAttempts: [],
+  modelProfile: loadModelProfile(),
+  setModelProfile: (profile) => {
+    try {
+      if (profile) localStorage.setItem(MODEL_KEY, profile); else localStorage.removeItem(MODEL_KEY);
+    } catch { /* storage unavailable: keep in memory only */ }
+    set({ modelProfile: profile });
+  },
 
   setScenarioInput: (input: string) => set({ scenarioInput: input }),
 
@@ -112,7 +127,7 @@ export const useThreatStore = create<ThreatState>((set, get) => ({
     });
 
     try {
-      const data = await api.parse(scenarioInput);
+      const data = await api.parse(scenarioInput, get().modelProfile);
       set({
         cirData: data.cir.attack_graph,
         cirSpec: data.cir,

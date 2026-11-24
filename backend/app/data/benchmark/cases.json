@@ -1,0 +1,102 @@
+{
+  "attack_version": "20.1",
+  "notes": "Ground truth uses current ATT&CK ids (revoked ids such as T1562.001 are mapped to their replacements by the normalizer before scoring). expected_order lists the techniques in the order the narrative describes them.",
+  "cases": [
+    {
+      "id": "ransomware-email-to-impact",
+      "title": "Email-delivered ransomware",
+      "tags": ["ransomware", "email", "windows"],
+      "narrative": "A user receives a spearphishing attachment. The attachment launches PowerShell, establishes persistence, accesses stored credentials, moves laterally over SMB, and encrypts shared files.",
+      "expected_techniques": ["T1566.001", "T1059.001", "T1547", "T1003", "T1021.002", "T1486"],
+      "expected_order": ["T1566.001", "T1059.001", "T1547", "T1003", "T1021.002", "T1486"]
+    },
+    {
+      "id": "credential-theft-powershell",
+      "title": "PowerShell credential theft",
+      "tags": ["credential-access", "powershell"],
+      "narrative": "An attacker uses PowerShell on a compromised workstation to dump credentials, collect discovery data, and access an internal file server.",
+      "expected_techniques": ["T1059.001", "T1003", "T1082", "T1083"],
+      "expected_order": ["T1059.001", "T1003", "T1082"]
+    },
+    {
+      "id": "lateral-movement-admin-shares",
+      "title": "Windows admin share lateral movement",
+      "tags": ["lateral-movement", "windows"],
+      "narrative": "A threat actor uses valid accounts to access Windows admin shares, executes a remote service on a server, and stages tooling for persistence.",
+      "expected_techniques": ["T1078", "T1021.002", "T1569.002", "T1547"],
+      "expected_order": ["T1078", "T1021.002", "T1569.002", "T1547"]
+    },
+    {
+      "id": "web-shell-exfiltration",
+      "title": "Web shell to data exfiltration",
+      "tags": ["web", "exploit", "exfiltration"],
+      "narrative": "The attacker exploits a vulnerability in an internet-facing Confluence server and uploads a JSP web shell. Through the web shell they run whoami and systeminfo, then use procdump against lsass.exe to harvest credentials. Finally they send the dump back to their server over the existing command-and-control channel.",
+      "expected_techniques": ["T1190", "T1505.003", "T1033", "T1082", "T1003.001", "T1041"],
+      "expected_order": ["T1190", "T1505.003", "T1033", "T1082", "T1003.001", "T1041"]
+    },
+    {
+      "id": "kerberoasting-active-directory",
+      "title": "Password spraying to Kerberoasting",
+      "tags": ["active-directory", "credential-access"],
+      "narrative": "An external actor sprays a few common passwords against the VPN portal and logs in with a domain account that used one of them. They enumerate domain users and service accounts with net user /domain and PowerView, request service tickets for SPN accounts and crack them offline (Kerberoasting), then use the cracked service account to RDP into a database server.",
+      "expected_techniques": ["T1110.003", "T1078.002", "T1087.002", "T1558.003", "T1021.001"],
+      "expected_order": ["T1110.003", "T1078.002", "T1087.002", "T1558.003", "T1021.001"]
+    },
+    {
+      "id": "cloud-account-takeover",
+      "title": "Cloud account takeover and storage theft",
+      "tags": ["cloud", "phishing", "exfiltration"],
+      "narrative": "A finance employee clicks a link in a phishing email that leads to a fake Microsoft 365 login page. The attacker signs in to the employee's cloud account with the stolen credentials, lists the storage buckets and blobs the account can reach, downloads customer files from cloud storage, and uploads them to an attacker-controlled Dropbox account.",
+      "expected_techniques": ["T1566.002", "T1078.004", "T1619", "T1530", "T1567.002"],
+      "expected_order": ["T1566.002", "T1078.004", "T1619", "T1530", "T1567.002"]
+    },
+    {
+      "id": "supply-chain-dll-sideloading",
+      "title": "Trojanized software update",
+      "tags": ["supply-chain", "windows"],
+      "narrative": "The adversary compromises a vendor's build server so a signed software update ships with a malicious DLL. When the legitimate application starts it loads the attacker's DLL from its own folder. The implant creates a scheduled task for persistence and beacons to its controller over HTTPS.",
+      "expected_techniques": ["T1195.002", "T1574.001", "T1053.005", "T1071.001"],
+      "expected_order": ["T1195.002", "T1574.001", "T1053.005", "T1071.001"]
+    },
+    {
+      "id": "insider-usb-exfiltration",
+      "title": "Insider data theft over USB",
+      "tags": ["insider", "exfiltration"],
+      "narrative": "A departing engineer logs in with their own valid account, gathers design documents from local project folders, compresses them into a password-protected archive with 7-Zip, and copies the archive to a personal USB drive.",
+      "expected_techniques": ["T1078", "T1005", "T1560.001", "T1052.001"],
+      "expected_order": ["T1078", "T1005", "T1560.001", "T1052.001"]
+    },
+    {
+      "id": "linux-cryptominer",
+      "title": "Linux server cryptominer",
+      "tags": ["linux", "cryptomining"],
+      "narrative": "Attackers exploit a remote code execution flaw in a public web application running on a Linux server. They use a bash one-liner to download a miner, add a cron job so it restarts every minute, and the server's CPU is used to mine Monero.",
+      "expected_techniques": ["T1190", "T1059.004", "T1053.003", "T1496.001"],
+      "expected_order": ["T1190", "T1059.004", "T1053.003", "T1496.001"]
+    },
+    {
+      "id": "business-email-compromise",
+      "title": "Business email compromise",
+      "tags": ["email", "bec", "cloud"],
+      "narrative": "After phishing a manager with a credential-harvesting link, the attacker logs in to the manager's mailbox, creates an inbox rule that moves replies from the finance team to the RSS folder, reads the mailbox remotely to learn about pending invoices, and sends internal spearphishing emails from the manager's account asking finance to change bank details.",
+      "expected_techniques": ["T1566.002", "T1078.004", "T1564.008", "T1114.002", "T1534"],
+      "expected_order": ["T1566.002", "T1078.004", "T1564.008", "T1114.002", "T1534"]
+    },
+    {
+      "id": "living-off-the-land-ransomware",
+      "title": "Living-off-the-land ransomware deployment",
+      "tags": ["ransomware", "defense-impairment", "windows"],
+      "narrative": "Using WMI to run commands on remote hosts, the operators stop and disable the endpoint protection service, clear the Windows Security and System event logs, delete volume shadow copies with vssadmin, and then encrypt every file share.",
+      "expected_techniques": ["T1047", "T1685", "T1685.005", "T1490", "T1486"],
+      "expected_order": ["T1047", "T1685", "T1685.005", "T1490", "T1486"]
+    },
+    {
+      "id": "macos-infostealer",
+      "title": "macOS infostealer",
+      "tags": ["macos", "credential-access"],
+      "narrative": "A designer downloads and opens a fake installer disk image for a popular app. The installer runs an AppleScript that shows a fake password prompt, dumps saved passwords from the macOS Keychain, and uploads them over the malware's command-and-control channel.",
+      "expected_techniques": ["T1204.002", "T1059.002", "T1555.001", "T1041"],
+      "expected_order": ["T1204.002", "T1059.002", "T1555.001", "T1041"]
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import logging
+from functools import partial
 from time import perf_counter
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,6 +11,7 @@ from app.core.database import get_db
 from app.models.experiment import ExperimentMetric
 from app.models.scenario import ScenarioRecord
 from app.models.user import UserRecord
+from app.models.workspace import Workspace
 from app.repositories.scenario_repo import ScenarioRepository
 from app.schemas.cir import CIRSpecification, Evidence
 from app.services.attack_knowledge import ATTACKKnowledgeService
@@ -18,6 +20,7 @@ from app.services.cir_pipeline import (
     PipelineValidationError,
     generate_cir,
 )
+from app.services.llm_client import UnknownProfileError, get_profile
 from app.services.llm_parser import LLMUnavailableError, parse_narrative_to_cir
 
 router = APIRouter()
@@ -27,6 +30,18 @@ attack_knowledge = ATTACKKnowledgeService()
 
 class ParseRequest(BaseModel):
     scenario: str = Field(..., max_length=10000, description="Narasi ancaman maksimal 10.000 karakter")
+    model_profile: str | None = Field(default=None, max_length=64, description="LLM profile name (GET /llm/profiles)")
+
+
+def llm_generator(base, profile: str | None = None, instructions: str | None = None):
+    """Bind the request's LLM profile / instructions to ``base`` (the LLM call).
+    Unknown profiles are a 400 before any model is called."""
+    try:
+        get_profile(profile)
+    except UnknownProfileError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    kwargs = {key: value for key, value in (("profile", profile), ("instructions", instructions)) if value}
+    return partial(base, **kwargs) if kwargs else base
 
 
 class RepairAttempt(BaseModel):
@@ -119,17 +134,47 @@ async def parse_scenario(
     if not request.scenario.strip():
         raise HTTPException(status_code=400, detail="Scenario cannot be empty")
     started = perf_counter()
-    # Looked up at call time so tests can substitute the LLM.
-    result = await run_llm_pipeline(request.scenario, parse_narrative_to_cir, db, started, "parse")
+    # parse_narrative_to_cir is looked up at call time so tests can substitute the LLM.
+    generator = llm_generator(parse_narrative_to_cir, request.model_profile)
+    result = await run_llm_pipeline(request.scenario, generator, db, started, "parse")
     return save_result(db, started, "parse", request.scenario, result.cir, result.validation, current_user.id, result.attempts)
+
+
+class WorkspaceAssignment(BaseModel):
+    workspace_id: str | None = None
+
+
+def _scenario_payloads(db: Session, scenarios: list[ScenarioRecord], user: UserRecord) -> list[dict]:
+    repo = ScenarioRepository(db)
+    owner_ids = {s.owner_id for s in scenarios if s.owner_id}
+    workspace_ids = {s.workspace_id for s in scenarios if s.workspace_id}
+    usernames = {u.id: u.username for u in db.query(UserRecord).filter(UserRecord.id.in_(owner_ids)).all()} if owner_ids else {}
+    workspaces = {w.id: w.name for w in db.query(Workspace).filter(Workspace.id.in_(workspace_ids)).all()} if workspace_ids else {}
+    return [
+        {
+            "id": scenario.id,
+            "original_input": scenario.original_input,
+            "created_at": scenario.created_at,
+            "owner_id": scenario.owner_id,
+            "owner_username": usernames.get(scenario.owner_id),
+            "is_owner": scenario.owner_id == user.id,
+            "workspace_id": scenario.workspace_id,
+            "workspace_name": workspaces.get(scenario.workspace_id),
+            "can_edit": repo.can_edit(scenario, user.id),
+        }
+        for scenario in scenarios
+    ]
 
 
 @router.get("/scenarios")
 def get_all_scenarios(
+    workspace: str | None = None,
     db: Session = Depends(get_db),
     current_user: UserRecord = Depends(get_current_user),
 ):
-    return ScenarioRepository(db).list_for_owner(current_user.id)
+    """Own scenarios plus those shared into the caller's workspaces.
+    ``workspace=personal`` or a workspace id narrows the list."""
+    return _scenario_payloads(db, ScenarioRepository(db).list_for_owner(current_user.id, workspace), current_user)
 
 
 @router.get("/scenarios/{scenario_id}")
@@ -152,6 +197,25 @@ def delete_scenario(
     db: Session = Depends(get_db),
     current_user: UserRecord = Depends(get_current_user),
 ):
-    if not ScenarioRepository(db).delete(scenario_id, current_user.id):
+    try:
+        deleted = ScenarioRepository(db).delete(scenario_id, current_user.id)
+    except PermissionError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    if not deleted:
         raise HTTPException(status_code=404, detail="Scenario not found")
     return {"message": "Scenario deleted successfully"}
+
+
+@router.put("/scenarios/{scenario_id}/workspace")
+def set_scenario_workspace(
+    request: WorkspaceAssignment,
+    scenario: ScenarioRecord = Depends(get_owned_scenario),
+    db: Session = Depends(get_db),
+    current_user: UserRecord = Depends(get_current_user),
+):
+    """Share a scenario into a workspace (or back to personal with null)."""
+    try:
+        updated = ScenarioRepository(db).set_workspace(scenario, current_user.id, request.workspace_id)
+    except PermissionError as error:
+        raise HTTPException(status_code=403, detail=str(error)) from error
+    return _scenario_payloads(db, [updated], current_user)[0]

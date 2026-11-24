@@ -63,6 +63,11 @@ export interface Scenario {
   original_input: string;
   created_at: string;
   cir_graph_data?: CIRSpecification;
+  owner_username?: string | null;
+  is_owner?: boolean;
+  workspace_id?: string | null;
+  workspace_name?: string | null;
+  can_edit?: boolean;
 }
 
 export interface CoverageReport {
@@ -390,4 +395,45 @@ export interface AlertIngestResponse extends ParseResponse {
 }
 export interface CtiIngestResponse extends ParseResponse {
   source: { title: string; location: string; characters: number; truncated: boolean };
+}
+
+// ---- Real gap analysis ----
+export type GapStatus = 'COVERED' | 'COVERED_UNVERIFIED_TELEMETRY' | 'RULE_WITHOUT_TELEMETRY' | 'TELEMETRY_WITHOUT_RULE' | 'BLIND' | 'NO_RULE';
+export interface InventorySummary { rules: number; techniques: number; top_techniques: Array<[string, number]>; files: Array<{ file: string; rules: number }> }
+export interface DataSourceState { configured: boolean; components: string[]; source: 'manual' | 'dettect' | null; catalog: string[] }
+export interface GapAnalysis {
+  techniques: Array<{
+    technique: string;
+    technique_name: string | null;
+    tactic: string;
+    status: GapStatus;
+    existing_rules: Array<{ title: string; match: 'exact' | 'related' }>;
+    existing_rule_count: number;
+    generated_rule_available: boolean;
+    required_data_components: string[];
+    available_data_components: string[];
+    missing_data_components: string[];
+    log_sources: string[];
+  }>;
+  summary: { techniques: number; covered: number; coverage: number | null; blind: number; rule_without_telemetry: number; telemetry_without_rule: number; inventory_rules: number; data_source_profile: boolean };
+  top_missing_data_components: Array<{ data_component: string; techniques: number }>;
+}
+
+// ---- Workspaces / LLM profiles / model benchmark ----
+export type WorkspaceRole = 'owner' | 'editor' | 'viewer';
+export interface WorkspaceSummary { id: string; name: string; role: WorkspaceRole; members: number; scenarios: number; created_at: string }
+export interface WorkspaceMemberInfo { user_id: string; username: string; full_name: string | null; role: WorkspaceRole; you: boolean }
+export interface LLMProfileInfo { name: string; model: string; mode: 'tools' | 'json'; local: boolean }
+export interface BenchmarkCase { id: string; title: string; tags: string[]; narrative: string; expected_techniques: string[] }
+export interface BenchmarkSummary { cases: number; valid_rate: number; exact_f1: number; exact_precision: number; exact_recall: number; parent_f1: number; ordering: number; avg_repair_attempts: number; avg_latency_ms: number; errors: number }
+export interface BenchmarkCaseResult {
+  case_id: string; title: string; status: 'valid' | 'invalid' | 'llm_error' | 'error'; repair_attempts: number; latency_ms: number;
+  exact: { precision: number; recall: number; f1: number }; parent: { precision: number; recall: number; f1: number };
+  ordering: number; predicted: string[]; missing: string[]; extra: string[]; nodes: number; error?: string;
+}
+export interface BenchmarkRun {
+  id: string; status: 'queued' | 'running' | 'done' | 'failed'; profiles: string[]; case_ids: string[] | null;
+  report: { cases: string[]; profiles: Record<string, { summary: BenchmarkSummary; results: BenchmarkCaseResult[] }> } | null;
+  summary?: Record<string, BenchmarkSummary>;
+  error: string | null; created_at: string; finished_at: string | null;
 }
